@@ -4,6 +4,7 @@
   "type": "module",
   "devDependencies": {
     "@types/bun": "latest",
+    "prettier": "^3.3.3",
     "typedoc": "^0.26.5"
   },
   "peerDependencies": {
