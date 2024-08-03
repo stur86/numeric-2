@@ -8,8 +8,8 @@ export type NestedArray<T> = Array<T | NestedArray<T> >;
  * @param shape: number[] - The shape of the tensor
  */
 export class TensorBase {
-    private _data: NestedArray<number>;
-    private _shape: number[];
+    protected _data: NestedArray<number>;
+    protected _shape: number[];
 
     /**
      * Create a tensor base class
