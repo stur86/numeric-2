@@ -11,10 +11,10 @@ export default class NumericCore {
 }
 
 function sum(x: number[]): number {
-    let ans = 0;
-    for(let i = 0; i < 10; i+=1 /*UNROLL_INCR*/) {
-        ans += /*UNROLL_START*/ x[i] /*UNROLL_END*/;
-    }
-    /*UNROLL_CASES*/
-    return ans;
+  let ans = 0;
+  for (let i = 0; i < 10; i += 1 /*UNROLL_INCR*/) {
+    ans += /*UNROLL_START*/ x[i] /*UNROLL_END*/;
+  }
+  /*UNROLL_CASES*/
+  return ans;
 }
