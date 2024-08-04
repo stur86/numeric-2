@@ -30,26 +30,32 @@ export class TensorBase {
     this._shape = shape;
   }
 
-  get data() {
+  /** Get the raw data of the tensor */
+  get data(): [NestedArray<number>, NestedArray<number> | null] {
     return [this._re, this._im];
   }
 
+  /** Get the real part of the data of the tensor */
   get real() {
     return this._re;
   }
 
+  /** Get the imaginary part of the data of the tensor */
   get imag() {
     return this._im;
   }
 
+  /** Get the shape of the tensor */
   get shape() {
     return this._shape;
   }
 
+  /** Get the size of the tensor */
   get size() {
     return this._shape.reduce((a, b) => a * b, 1);
   }
 
+  /** Check if the tensor is complex */
   get is_complex() {
     return this._im !== null;
   }

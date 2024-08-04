@@ -14,5 +14,8 @@
   },
   "peerDependencies": {
     "typescript": "^5.0.0"
+  },
+  "scripts": {
+    "prettify": "prettier --write src/ benchmarks/ index.ts"
   }
 }
