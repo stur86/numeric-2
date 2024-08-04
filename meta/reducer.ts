@@ -1,4 +1,4 @@
-const REDUCER_TEMPLATE_LINES = (await Bun.file(import.meta.dir + "/reducer.template.tjs").text()).split('\n');
+const REDUCER_TEMPLATE = (await Bun.file(import.meta.dir + "/reducer.template.tjs").text());
 
 export type VectorReducerMetaFunctionArgs = {
     name: string;
@@ -38,7 +38,7 @@ export class VectorReducerMetaFunction {
     }
 
     compileSource(): string {
-        let source = REDUCER_TEMPLATE_LINES.join('\n');
+        let source = REDUCER_TEMPLATE.slice();
         source = source.replaceAll("$NAME", this.name);
         const typedArgs = this.dataArgs.map((arg) => `${arg}: number[]`).join(', ');
         source = source.replaceAll("$DATA_ARGS", typedArgs);

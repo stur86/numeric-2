@@ -1,4 +1,10 @@
 import { TensorBase } from "./base";
+import {
+  _re_v_norm2,
+  _re_v_norm2squared,
+  _re_v_normInf,
+  _re_v_norm1,
+} from "./core";
 
 /**
  * A class representing a vector, or 1D tensor
@@ -33,5 +39,55 @@ export default class Vector extends TensorBase {
   /** Get the length of the vector */
   get length() {
     return this.shape[0];
+  }
+
+  // Core methods
+
+  /**
+   * Euclidean norm of the vector
+   * 
+   * @returns The 2-norm of the vector
+   */
+  norm2(): number {
+    if (this.is_complex) {
+        throw new Error("Complex vectors are not supported yet");
+    }
+    return _re_v_norm2(this._re, this.length);
+  }
+
+  /**
+   * Squared Euclidean norm of the vector
+   * 
+   * @returns The squared 2-norm of the vector
+   */
+  norm2Squared(): number {
+    if (this.is_complex) {
+        throw new Error("Complex vectors are not supported yet");
+    }
+    return _re_v_norm2squared(this._re, this.length);
+  }
+
+  /**
+   * Manhattan norm of the vector
+   * 
+   * @returns The 1-norm of the vector
+   */
+  norm1(): number {
+    if (this.is_complex) {
+        throw new Error("Complex vectors are not supported yet");
+    }
+    return _re_v_norm1(this._re, this.length);
+  }
+
+  /**
+   * Infinity norm of the vector
+   * 
+   * @returns The infinity norm of the vector
+   */
+  normInf(): number {
+    if (this.is_complex) {
+        throw new Error("Complex vectors are not supported yet");
+    }
+    return _re_v_normInf(this._re, this.length);
   }
 }
