@@ -12,7 +12,7 @@ console.log(`Generating functions in ${targetDir}`);
 console.log("_____\n");
 
 // Reducers
-const reducerFile = targetDir + "/reducers.ts";
+const reducerFile = targetDir + "reducers.ts";
 console.log(`Generating reducers in ${reducerFile}:`);
 const reducerArgs: VectorReducerMetaFunctionArgs[] = [
     { name: '_re_v_norm2', reduceElement: 'x_i*x_i', reduceOperator: '+=', resultTransform: 'Math.sqrt(ans)' },
