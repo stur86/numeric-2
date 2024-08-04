@@ -15,9 +15,9 @@ enum NCoreArgType {
  *
  * The operations will have multiple versions (Real, Complex, etc.) and will be
  * initialized to defaults and retrieved with appropriate methods.
- *
- * The core engine may be reinitialized to recompile all operations with new settings,
- * e.g. extended loop unrolling, using automated processes.
+ * 
+ * Most of the inner computation functions are actually machine generated, and
+ * can be created to different levels of unrolling and optimization.
  */
 export default class NumericCore {
   static OpType = NCoreOpType;
@@ -32,13 +32,4 @@ export default class NumericCore {
   static getElement(name: string): number {
     return NumericCore[name as keyof typeof NumericCore] as number;
   }
-}
-
-function sum(x: number[]): number {
-  let ans = 0;
-  for (let i = 0; i < 10; i += 1 /*UNROLL_INCR*/) {
-    ans += /*UNROLL_START*/ x[i] /*UNROLL_END*/;
-  }
-  /*UNROLL_CASES*/
-  return ans;
 }
