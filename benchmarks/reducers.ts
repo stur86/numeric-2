@@ -1,5 +1,5 @@
 import { BenchmarkSuite } from "./base";
-import { _re_v_norm2 } from "../src/core/reducers";
+import { _re_v_norm2 } from "../src/core/reducers.ts";
 import numeric from "numeric";
 
 const norm2_suite = new BenchmarkSuite(
@@ -8,7 +8,7 @@ const norm2_suite = new BenchmarkSuite(
     numeric2: _re_v_norm2,
     numeric: numeric.norm2,
   },
-  { iterations: 1000, warmup: 100 },
+  { iterations: 1000, warmup: 10 },
   (N: number) => {
     return [new Array(N).fill(1), N];
   },

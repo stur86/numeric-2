@@ -40,4 +40,22 @@ export class VectorReducerMetaFunction {
         const csLines = csource.split('\n').slice(1, -1);        
         return Function(...this.dataArgs, 'n', csLines.join('\n')) as unknown as Function;
     }
+
+    compositeSource(composite_name: string, inner_function: string = "Math.sqrt($ANS)"): string {
+        const baseSourceLines = this.compileSource().split('\n');
+        const sourceLines = [];
+        sourceLines.push(baseSourceLines[0].replace(this.name, composite_name));
+        // Create the inner function call
+        const innerCall = `${this.name}(${this.dataArgs.join(', ')}, n)`;
+        sourceLines.push(`\treturn ${inner_function.replace("$ANS", innerCall)};`);
+        sourceLines.push('}');
+        return sourceLines.join('\n');
+    }
+    
+    composite(composite_name: string, inner_function: string = "Math.sqrt($ANS)"): Function {
+        const csource = this.compositeSource(composite_name, inner_function);
+        // Only inner part
+        const csLines = csource.split('\n').slice(1, -1);        
+        return Function(...this.dataArgs, 'n', csLines.join('\n')) as unknown as Function;
+    }
 }

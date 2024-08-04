@@ -1,7 +1,7 @@
 // Bun Snapshot v1, https://goo.gl/fbAQLP
 
 exports[`VectorReducerMetaFunction 1`] = `
-"export function norm2(x: number[], n: number): number {
+"export function norm2squared(x: number[], n: number): number {
     let i = n-1,
         ans = x[i]*x[i];
     --i;
@@ -33,5 +33,11 @@ exports[`VectorReducerMetaFunction 3`] = `
         ans = (ans > x[i]? ans : x[i]);
     }
     return ans;
+}"
+`;
+
+exports[`VectorReducerMetaFunction 4`] = `
+"export function norm2(x: number[], n: number): number {
+	return Math.sqrt(norm2squared(x, n));
 }"
 `;
