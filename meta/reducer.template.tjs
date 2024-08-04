@@ -1,4 +1,4 @@
-export function $NAME($DATA_ARGS, n: number) {
+export function $NAME($DATA_ARGS, n: number): number {
     let i = n-1,
         ans = $REDUCE_ELEMENT_INIT;
     --i;
