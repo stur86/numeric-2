@@ -3,7 +3,12 @@
   "module": "index.ts",
   "type": "module",
   "devDependencies": {
+    "@types/benchmark": "^2.1.5",
     "@types/bun": "latest",
+    "@types/microtime": "^2.1.2",
+    "@types/numeric": "^1.2.6",
+    "microtime": "^3.1.1",
+    "numeric": "^1.2.6",
     "prettier": "^3.3.3",
     "typedoc": "^0.26.5"
   },
