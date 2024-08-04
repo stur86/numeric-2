@@ -18,6 +18,7 @@ type BenchmarkStats = {
   median: number;
   percentile_25: number;
   percentile_75: number;
+  last_result: any;
 };
 
 const _defaultOptions: Required<BenchmarkOptions> = {
@@ -69,16 +70,22 @@ export class BenchmarkSuite {
       method(...args);
     }
     // Run benchmark iterations
+    let res;
     for (let i = 0; i < iterations; i++) {
       const start = microtime.now();
-      method(...args);
+      res = method(...args);
       const end = microtime.now();
       times.push(end - start);
     }
-    return this.computeStats(name, times, this.N!);
+    return this.computeStats(name, times, this.N!, res);
   }
 
-  computeStats(name: string, times: number[], N: number): BenchmarkStats {
+  computeStats(
+    name: string,
+    times: number[],
+    N: number,
+    last_result: any,
+  ): BenchmarkStats {
     const iterations = times.length;
     const mean = times.reduce((a, b) => a + b, 0) / iterations;
     const variance =
@@ -103,6 +110,7 @@ export class BenchmarkSuite {
       median,
       percentile_25,
       percentile_75,
+      last_result,
     };
   }
 }
