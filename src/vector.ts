@@ -30,6 +30,7 @@ export default class Vector extends TensorBase {
     super(re, im, [re.length]);
   }
 
+  /** Get the length of the vector */
   get length() {
     return this.shape[0];
   }
