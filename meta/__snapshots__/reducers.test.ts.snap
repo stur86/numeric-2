@@ -1,0 +1,37 @@
+// Bun Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`VectorReducerMetaFunction 1`] = `
+"export function norm2(x: number[], n: number) {
+    let i = n-1,
+        ans = x[i]*x[i];
+    --i;
+    for (; i >= 0; i -= 1) {
+        ans += x[i]*x[i];
+    }
+    return ans;
+}"
+`;
+
+exports[`VectorReducerMetaFunction 2`] = `
+"export function dot(x: number[], y: number[], n: number) {
+    let i = n-1,
+        ans = x[i]*y[i];
+    --i;
+    for (; i >= 0; i -= 1) {
+        ans += x[i]*y[i];
+    }
+    return ans;
+}"
+`;
+
+exports[`VectorReducerMetaFunction 3`] = `
+"export function max(x: number[], n: number) {
+    let i = n-1,
+        ans = x[i];
+    --i;
+    for (; i >= 0; i -= 1) {
+        ans = (ans > x[i]? ans : x[i]);
+    }
+    return ans;
+}"
+`;
