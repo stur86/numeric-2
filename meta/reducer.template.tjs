@@ -5,5 +5,5 @@ export function $NAME($DATA_ARGS, n: number): number {
     for (; i >= 0; i -= 1) {
         ans $REDUCE_OPERATOR $REDUCE_ELEMENT;
     }
-    return ans;
+    return $TRANSFORMED_RESULT;
 }

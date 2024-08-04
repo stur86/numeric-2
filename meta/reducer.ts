@@ -1,5 +1,23 @@
 const REDUCER_TEMPLATE_LINES = (await Bun.file(import.meta.dir + "/reducer.template.tjs").text()).split('\n');
 
+export type VectorReducerMetaFunctionArgs = {
+    name: string;
+    dataArgs?: string[];
+    reduceElement?: string;
+    reduceOperator?: string;
+    initElement?: string | null;
+    resultTransform?: string;
+};
+
+const DEFAULT_ARGS: Required<VectorReducerMetaFunctionArgs> = {
+    name: '',
+    dataArgs: ['x'],
+    reduceElement: 'x_i*x_i',
+    reduceOperator: '+=',
+    initElement: null,
+    resultTransform: 'ans',
+};
+
 
 export class VectorReducerMetaFunction {
     name: string;
@@ -7,18 +25,16 @@ export class VectorReducerMetaFunction {
     reduceElement: string;
     reduceOperator: string;
     initElement: string;
+    resultTransform: string;
 
-
-    constructor(name: string, 
-                dataArgs: string[] = ['x'],
-                reduceElement: string = 'x_i*x_i',
-                reduceOperator: string = '+=', 
-                initElement: string | null = null) {
+    constructor(args: VectorReducerMetaFunctionArgs) {
+        const { name, dataArgs, reduceElement, reduceOperator, initElement, resultTransform } = { ...DEFAULT_ARGS, ...args };
         this.name = name;
         this.dataArgs = dataArgs;
         this.reduceElement = reduceElement;
         this.reduceOperator = reduceOperator;
         this.initElement = initElement ?? this.reduceElement;
+        this.resultTransform = resultTransform;
     }
 
     compileSource(): string {
@@ -31,29 +47,12 @@ export class VectorReducerMetaFunction {
         const updateRes = this.dataArgs.reduce((acc, arg) => acc.replaceAll(`${arg}_i`, `${arg}[i]`), this.reduceElement);
         source = source.replaceAll("$REDUCE_OPERATOR", this.reduceOperator);
         source = source.replaceAll("$REDUCE_ELEMENT", updateRes);
+        source = source.replaceAll("$TRANSFORMED_RESULT", this.resultTransform);
         return source;
     }
 
     compile(): Function {
         const csource = this.compileSource();
-        // Only inner part
-        const csLines = csource.split('\n').slice(1, -1);        
-        return Function(...this.dataArgs, 'n', csLines.join('\n')) as unknown as Function;
-    }
-
-    compositeSource(composite_name: string, inner_function: string = "Math.sqrt($ANS)"): string {
-        const baseSourceLines = this.compileSource().split('\n');
-        const sourceLines = [];
-        sourceLines.push(baseSourceLines[0].replace(this.name, composite_name));
-        // Create the inner function call
-        const innerCall = `${this.name}(${this.dataArgs.join(', ')}, n)`;
-        sourceLines.push(`\treturn ${inner_function.replace("$ANS", innerCall)};`);
-        sourceLines.push('}');
-        return sourceLines.join('\n');
-    }
-    
-    composite(composite_name: string, inner_function: string = "Math.sqrt($ANS)"): Function {
-        const csource = this.compositeSource(composite_name, inner_function);
         // Only inner part
         const csLines = csource.split('\n').slice(1, -1);        
         return Function(...this.dataArgs, 'n', csLines.join('\n')) as unknown as Function;

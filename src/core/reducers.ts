@@ -1,3 +1,13 @@
+export function _re_v_norm2(x: number[], n: number): number {
+    let i = n-1,
+        ans = x[i]*x[i];
+    --i;
+    for (; i >= 0; i -= 1) {
+        ans += x[i]*x[i];
+    }
+    return Math.sqrt(ans);
+}
+
 export function _re_v_norm2squared(x: number[], n: number): number {
     let i = n-1,
         ans = x[i]*x[i];
@@ -14,6 +24,16 @@ export function _re_v_norm1(x: number[], n: number): number {
     --i;
     for (; i >= 0; i -= 1) {
         ans += Math.abs(x[i]);
+    }
+    return ans;
+}
+
+export function _re_v_normInf(x: number[], n: number): number {
+    let i = n-1,
+        ans = Math.abs(x[i]);
+    --i;
+    for (; i >= 0; i -= 1) {
+        ans = Math.max(ans, Math.abs(x[i]));
     }
     return ans;
 }
@@ -56,9 +76,5 @@ export function _re_v_min(x: number[], n: number): number {
         ans = Math.min(ans, x[i]);
     }
     return ans;
-}
-
-export function _re_v_norm2(x: number[], n: number): number {
-	return Math.sqrt(_re_v_norm2squared(x, n));
 }
 

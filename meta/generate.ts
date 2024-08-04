@@ -1,4 +1,5 @@
 import { VectorReducerMetaFunction } from "./reducer";
+import type { VectorReducerMetaFunctionArgs } from "./reducer";
 
 
 /**
@@ -13,28 +14,22 @@ console.log("_____\n");
 // Reducers
 const reducerFile = targetDir + "/reducers.ts";
 console.log(`Generating reducers in ${reducerFile}:`);
-const reducers: VectorReducerMetaFunction[] = [
-    new VectorReducerMetaFunction('_re_v_norm2squared', ['x'], 'x_i*x_i', '+='),
-    new VectorReducerMetaFunction('_re_v_norm1', ['x'], 'Math.abs(x_i)', '+='),
-    new VectorReducerMetaFunction('_re_v_sum', ['x'], 'x_i', '+='),
-    new VectorReducerMetaFunction('_re_v_prod', ['x'], 'x_i', '*='),
-    new VectorReducerMetaFunction('_re_v_max', ['x'], 'Math.max(ans, x_i)', '=', 'x_i'),
-    new VectorReducerMetaFunction('_re_v_min', ['x'], 'Math.min(ans, x_i)', '=', 'x_i'),
+const reducerArgs: VectorReducerMetaFunctionArgs[] = [
+    { name: '_re_v_norm2', reduceElement: 'x_i*x_i', reduceOperator: '+=', resultTransform: 'Math.sqrt(ans)' },
+    { name: '_re_v_norm2squared', reduceElement: 'x_i*x_i', reduceOperator: '+=' },
+    { name: '_re_v_norm1', reduceElement: 'Math.abs(x_i)', reduceOperator: '+=' },
+    { name: '_re_v_normInf', reduceElement: 'Math.max(ans, Math.abs(x_i))', reduceOperator: '=', initElement: 'Math.abs(x_i)' },
+    { name: '_re_v_sum', reduceElement: 'x_i', reduceOperator: '+=' },
+    { name: '_re_v_prod', reduceElement: 'x_i', reduceOperator: '*=' },
+    { name: '_re_v_max', reduceElement: 'Math.max(ans, x_i)', reduceOperator: '=', initElement: 'x_i' },
+    { name: '_re_v_min', reduceElement: 'Math.min(ans, x_i)', reduceOperator: '=', initElement: 'x_i' },
 ];
-// Add composites
-const compositeReducers = [
-    ['_re_v_norm2squared', '_re_v_norm2', 'Math.sqrt($ANS)'],
-]
 
 let reducerSource = "";
-for (const reducer of reducers) {
+for (const rArgs of reducerArgs) {
+    const reducer = new VectorReducerMetaFunction(rArgs);
     console.log(`  ${reducer.name}`);
     reducerSource += reducer.compileSource() + '\n\n';
-}
-for (const [inner, composite, inner_function] of compositeReducers) {
-    const innerReducer = reducers.find((r) => r.name === inner)!;
-    console.log(`  ${composite}`);
-    reducerSource += innerReducer.compositeSource(composite, inner_function) + '\n\n';
 }
 Bun.write(reducerFile, reducerSource);
 console.log("_____\n");

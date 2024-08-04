@@ -30,7 +30,7 @@ exports[`VectorReducerMetaFunction 3`] = `
         ans = x[i];
     --i;
     for (; i >= 0; i -= 1) {
-        ans = (ans > x[i]? ans : x[i]);
+        ans = Math.max(ans, x[i]);
     }
     return ans;
 }"
@@ -38,6 +38,12 @@ exports[`VectorReducerMetaFunction 3`] = `
 
 exports[`VectorReducerMetaFunction 4`] = `
 "export function norm2(x: number[], n: number): number {
-	return Math.sqrt(norm2squared(x, n));
+    let i = n-1,
+        ans = x[i]*x[i];
+    --i;
+    for (; i >= 0; i -= 1) {
+        ans += x[i]*x[i];
+    }
+    return Math.sqrt(ans);
 }"
 `;
