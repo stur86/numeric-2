@@ -1,3 +1,5 @@
 import Vector from "./src/vector";
 
-export { Vector };
+export default { 
+    Vector: Vector
+};
