@@ -1,10 +1,17 @@
 import Vector from "../vector";
 import NumericCore from "../core";
-import { selectUnaryMethodName } from "../utils";
+import { UnaryMethod } from "../utils";
+import type { TensorBase } from "../base";
 
 
-export function norm2(x: Vector): number {
-    const methodName = selectUnaryMethodName(x, "norm2") as keyof typeof NumericCore;
-    const method = NumericCore[methodName] as (x: any, n: number) => number;
-    return method(x.real, x.length);
+export function norm2(x: TensorBase): number {
+    return new UnaryMethod(x, "norm2").invoke();
+}
+
+export function norm2squared(x: TensorBase): number {
+    return new UnaryMethod(x, "norm2squared").invoke();
+}
+
+export function norm1(x: TensorBase): number {
+    return new UnaryMethod(x, "norm1").invoke();
 }
