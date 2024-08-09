@@ -1,4 +1,4 @@
-import Vector from "./vector";
+import Vector from "../vector";
 import { test, expect } from "bun:test";
 import { UnaryMethod } from "./utils";
 

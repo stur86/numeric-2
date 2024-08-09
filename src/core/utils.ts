@@ -1,6 +1,6 @@
-import type { TensorBase } from "./base";
-import Vector from "./vector";
-import NumericCore from "./core";
+import type { TensorBase } from "../base";
+import Vector from "../vector";
+import NumericCore from ".";
 
 export class UnaryMethod {
     dtype: string;

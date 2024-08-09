@@ -1,6 +1,6 @@
 import Vector from "../vector";
 import NumericCore from "../core";
-import { UnaryMethod } from "../utils";
+import { UnaryMethod } from "../core/utils";
 import type { TensorBase } from "../base";
 
 
