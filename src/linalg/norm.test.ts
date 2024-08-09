@@ -1,5 +1,5 @@
 import Vector from "../vector";
-import { norm2, norm2squared, norm1 } from "./norm";
+import { norm2, norm2squared, norm1, normInf } from "./norm";
 import { test, expect } from "bun:test";
 
 test("norm2", () => {
@@ -18,4 +18,10 @@ test("norm1", () => {
     // On vector
     const x = new Vector([1, 2, -3, 4]);
     expect(norm1(x)).toBe(10);
+});
+
+test("normInf", () => {
+    // On vector
+    const x = new Vector([1, 2, -3, -4]);
+    expect(normInf(x)).toBe(4);
 });

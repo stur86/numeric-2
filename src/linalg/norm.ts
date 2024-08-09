@@ -15,3 +15,7 @@ export function norm2squared(x: TensorBase): number {
 export function norm1(x: TensorBase): number {
     return new UnaryMethod(x, "norm1").invoke();
 }
+
+export function normInf(x: TensorBase): number {
+    return new UnaryMethod(x, "normInf").invoke();
+}
