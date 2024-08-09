@@ -1,0 +1,23 @@
+// Bun Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`VectorMapMetaFunction 1`] = `
+"export function sqrt(x: number[], n: number): number[] {
+    let i = n-1,
+        ans = Array(n);
+    for (; i >= 0; i -= 1) {
+        ans[i] = Math.sqrt(x[i]);
+    }
+    return ans;
+}"
+`;
+
+exports[`VectorMapMetaFunction 2`] = `
+"export function add(x: number[], y: number[], n: number): number[] {
+    let i = n-1,
+        ans = Array(n);
+    for (; i >= 0; i -= 1) {
+        ans[i] = x[i] + y[i];
+    }
+    return ans;
+}"
+`;

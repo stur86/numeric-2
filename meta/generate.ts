@@ -8,6 +8,10 @@ import type { VectorReducerMetaFunctionArgs } from "./reducer";
 
 // Get the target directory from the command line
 const targetDir = Bun.argv[2];
+if (targetDir === undefined) {
+    console.error("Usage: bun run meta/generate.ts <targetDir>");
+    process.exit(1);
+}
 console.log(`Generating functions in ${targetDir}`);
 console.log("_____\n");
 

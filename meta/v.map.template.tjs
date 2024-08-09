@@ -1,0 +1,8 @@
+export function $NAME($DATA_ARGS, n: number): number[] {
+    let i = n-1,
+        ans = Array(n);
+    for (; i >= 0; i -= 1) {
+        ans[i] = $MAP_ELEMENT;
+    }
+    return ans;
+}
