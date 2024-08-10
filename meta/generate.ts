@@ -1,5 +1,7 @@
 import { VectorReducerMetaFunction } from "./reducer";
 import type { VectorReducerMetaFunctionArgs } from "./reducer";
+import { VectorMapMetaFunction } from "./map";
+import type { VectorMapMetaFunctionArgs } from "./map";
 
 
 /**
@@ -19,6 +21,7 @@ console.log("_____\n");
 const reducerFile = targetDir + "reducers.ts";
 console.log(`Generating reducers in ${reducerFile}:`);
 const reducerArgs: VectorReducerMetaFunctionArgs[] = [
+    // Unary vector reducers
     { name: '_re_v_norm2', reduceElement: 'x_i*x_i', reduceOperator: '+=', resultTransform: 'Math.sqrt(ans)' },
     { name: '_re_v_norm2squared', reduceElement: 'x_i*x_i', reduceOperator: '+=' },
     { name: '_re_v_norm1', reduceElement: 'Math.abs(x_i)', reduceOperator: '+=' },
@@ -36,4 +39,30 @@ for (const rArgs of reducerArgs) {
     reducerSource += reducer.compileSource() + '\n\n';
 }
 Bun.write(reducerFile, reducerSource);
+console.log("_____\n");
+
+// Maps
+const mapFile = targetDir + "maps.ts";
+console.log(`Generating maps in ${mapFile}:`);
+const mapArgs: VectorMapMetaFunctionArgs[] = [
+    // Element-wise unary operations
+    { name: '_re_v_sqrt', mapElement: 'Math.sqrt(x_i)' },
+    { name: '_re_v_abs', mapElement: 'Math.abs(x_i)' },
+    { name: '_re_v_exp', mapElement: 'Math.exp(x_i)' },
+    { name: '_re_v_log', mapElement: 'Math.log(x_i)' },
+    { name: '_re_v_sin', mapElement: 'Math.sin(x_i)' },
+    { name: '_re_v_cos', mapElement: 'Math.cos(x_i)' },
+    { name: '_re_v_tan', mapElement: 'Math.tan(x_i)' },
+    { name: '_re_v_asin', mapElement: 'Math.asin(x_i)' },
+    { name: '_re_v_acos', mapElement: 'Math.acos(x_i)' },
+    { name: '_re_v_atan', mapElement: 'Math.atan(x_i)' },
+];
+
+let mapSource = "";
+for (const mArgs of mapArgs) {
+    const map = new VectorMapMetaFunction(mArgs);
+    console.log(`  ${map.name}`);
+    mapSource += map.compileSource() + '\n\n';
+}
+Bun.write(mapFile, mapSource);
 console.log("_____\n");

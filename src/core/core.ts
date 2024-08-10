@@ -12,6 +12,18 @@ import {
     _bool_v_all,
     _bool_v_any,
 } from "./extra.reducers";
+import {
+    _re_v_sqrt,
+    _re_v_abs,
+    _re_v_exp,
+    _re_v_log,
+    _re_v_sin,
+    _re_v_cos,
+    _re_v_tan,
+    _re_v_asin,
+    _re_v_acos,
+    _re_v_atan
+} from "./maps";
 
 export default class NumericCore {
     // Reducers
@@ -25,4 +37,15 @@ export default class NumericCore {
     static _re_v_sum = _re_v_sum;
     static _bool_v_all = _bool_v_all;
     static _bool_v_any = _bool_v_any;
+    // Maps
+    static _re_v_sqrt = _re_v_sqrt;
+    static _re_v_abs = _re_v_abs;
+    static _re_v_exp = _re_v_exp;
+    static _re_v_log = _re_v_log;
+    static _re_v_sin = _re_v_sin;
+    static _re_v_cos = _re_v_cos;
+    static _re_v_tan = _re_v_tan;
+    static _re_v_asin = _re_v_asin;
+    static _re_v_acos = _re_v_acos;
+    static _re_v_atan = _re_v_atan;
 };
