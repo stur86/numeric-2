@@ -1,5 +1,7 @@
 import Vector from "./src/vector";
+import * as linalg from "./src/linalg";
 
-export default { 
-    Vector: Vector
+export {
+    Vector,
+    linalg
 };
