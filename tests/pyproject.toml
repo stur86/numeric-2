@@ -1,0 +1,6 @@
+[project]
+name = "numeric2-oracle"
+version = "0.1.0"
+description = "NumPy oracle for cross-language validation of numeric-2"
+requires-python = ">=3.11"
+dependencies = ["numpy>=1.26"]
