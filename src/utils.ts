@@ -1,0 +1,272 @@
+/**
+ * Utility functions for array construction and manipulation.
+ */
+
+/**
+ * Returns the shape (dimensions) of a nested array.
+ * Follows the first element at each level.
+ *
+ * @param x     A scalar, array, or nested array.
+ * @returns     The shape as an array of integers.
+ */
+export function dim(x: any): number[] {
+    if (typeof x === 'number' || typeof x === 'boolean') return [];
+    if (!Array.isArray(x)) return [];
+    const shape: number[] = [];
+    let current: any = x;
+    while (Array.isArray(current)) {
+        shape.push(current.length);
+        current = current[0];
+    }
+    return shape;
+}
+
+/**
+ * Creates a new nested array of given shape filled with a value.
+ *
+ * @param shape     The shape of the array.
+ * @param value     The value to fill with.
+ * @returns         A nested array of the given shape.
+ */
+export function rep(shape: number[], value: number): any {
+    if (shape.length === 0) return value;
+    const n = shape[0];
+    const rest = shape.slice(1);
+    if (rest.length === 0) {
+        const ret = Array(n);
+        let i = n - 2;
+        for (; i >= 0; i -= 2) {
+            ret[i + 1] = value;
+            ret[i] = value;
+        }
+        if (i === -1) {
+            ret[0] = value;
+        }
+        return ret;
+    }
+    const ret = Array(n);
+    for (let i = n - 1; i >= 0; i--) {
+        ret[i] = rep(rest, value);
+    }
+    return ret;
+}
+
+/**
+ * Returns an array of n evenly spaced values from a to b inclusive.
+ *
+ * @param a     Start value.
+ * @param b     End value.
+ * @param n     Number of points (default: round(b-a)+1).
+ * @returns     Array of evenly spaced values.
+ */
+export function linspace(a: number, b: number, n?: number): number[] {
+    if (n === undefined) n = Math.round(b - a) + 1;
+    if (n < 2) return [a];
+    const ret = Array(n);
+    const nm1 = n - 1;
+    for (let i = nm1; i >= 0; i--) {
+        ret[i] = (i * b + (nm1 - i) * a) / nm1;
+    }
+    return ret;
+}
+
+/**
+ * Creates a nested array of given shape filled with uniform random values in [0,1).
+ *
+ * @param shape     The shape of the array.
+ * @returns         A nested array of random values.
+ */
+export function random(shape: number[]): any {
+    if (shape.length === 0) return Math.random();
+    const n = shape[0];
+    const rest = shape.slice(1);
+    if (rest.length === 0) {
+        const ret = Array(n);
+        const rnd = Math.random;
+        let i = n - 1;
+        for (; i >= 1; i -= 2) {
+            ret[i] = rnd();
+            ret[i - 1] = rnd();
+        }
+        if (i === 0) ret[0] = rnd();
+        return ret;
+    }
+    const ret = Array(n);
+    for (let i = n - 1; i >= 0; i--) {
+        ret[i] = random(rest);
+    }
+    return ret;
+}
+
+/**
+ * Creates the n×n identity matrix.
+ *
+ * @param n     The dimension.
+ * @returns     The identity matrix as number[][].
+ */
+export function identity(n: number): number[][] {
+    return diag(rep([n], 1) as number[]);
+}
+
+/**
+ * Creates a diagonal matrix from a vector.
+ *
+ * @param d     The diagonal elements.
+ * @returns     A square matrix with d on the diagonal.
+ */
+export function diag(d: number[]): number[][] {
+    const n = d.length;
+    const ret: number[][] = Array(n);
+    for (let i = n - 1; i >= 0; i--) {
+        const row = Array(n);
+        let j = n - 2;
+        for (; j >= 0; j -= 2) {
+            row[j + 1] = 0;
+            row[j] = 0;
+        }
+        if (j === -1) row[0] = 0;
+        row[i] = d[i];
+        ret[i] = row;
+    }
+    return ret;
+}
+
+/**
+ * Extracts the main diagonal of a matrix.
+ *
+ * @param A     A matrix (number[][]).
+ * @returns     The diagonal elements.
+ */
+export function getDiag(A: number[][]): number[] {
+    const n = Math.min(A.length, A[0].length);
+    const ret = Array(n);
+    for (let i = n - 1; i >= 0; i--) {
+        ret[i] = A[i][i];
+    }
+    return ret;
+}
+
+/**
+ * Deep clone of a nested number array.
+ *
+ * @param x     A number, array, or nested array.
+ * @returns     A deep copy.
+ */
+export function clone(x: number[]): number[];
+export function clone(x: number[][]): number[][];
+export function clone(x: any): any {
+    if (typeof x === 'number') return x;
+    if (!Array.isArray(x)) return x;
+    const n = x.length;
+    const ret = Array(n);
+    for (let i = n - 1; i >= 0; i--) {
+        ret[i] = Array.isArray(x[i]) ? clone(x[i]) : x[i];
+    }
+    return ret;
+}
+
+/**
+ * Transposes a 2D matrix.
+ *
+ * @param x     A matrix (number[][]).
+ * @returns     The transposed matrix.
+ */
+export function transpose(x: number[][]): number[][] {
+    const m = x.length;
+    const n = x[0].length;
+    const ret: number[][] = Array(n);
+    for (let j = 0; j < n; j++) ret[j] = Array(m);
+
+    let i = m - 1;
+    for (; i >= 1; i -= 2) {
+        const A1 = x[i], A0 = x[i - 1];
+        let j = n - 1;
+        for (; j >= 1; j -= 2) {
+            ret[j][i] = A1[j]; ret[j][i - 1] = A0[j];
+            ret[j - 1][i] = A1[j - 1]; ret[j - 1][i - 1] = A0[j - 1];
+        }
+        if (j === 0) {
+            ret[0][i] = A1[0]; ret[0][i - 1] = A0[0];
+        }
+    }
+    if (i === 0) {
+        const A0 = x[0];
+        for (let j = n - 1; j >= 0; j--) {
+            ret[j][0] = A0[j];
+        }
+    }
+    return ret;
+}
+
+/**
+ * Transposes and negates a 2D matrix (used for complex transjugate).
+ *
+ * @param x     A matrix (number[][]).
+ * @returns     The negated transposed matrix.
+ */
+export function negtranspose(x: number[][]): number[][] {
+    const m = x.length;
+    const n = x[0].length;
+    const ret: number[][] = Array(n);
+    for (let j = 0; j < n; j++) ret[j] = Array(m);
+
+    let i = m - 1;
+    for (; i >= 1; i -= 2) {
+        const A1 = x[i], A0 = x[i - 1];
+        let j = n - 1;
+        for (; j >= 1; j -= 2) {
+            ret[j][i] = -A1[j]; ret[j][i - 1] = -A0[j];
+            ret[j - 1][i] = -A1[j - 1]; ret[j - 1][i - 1] = -A0[j - 1];
+        }
+        if (j === 0) {
+            ret[0][i] = -A1[0]; ret[0][i - 1] = -A0[0];
+        }
+    }
+    if (i === 0) {
+        const A0 = x[0];
+        for (let j = n - 1; j >= 0; j--) {
+            ret[j][0] = -A0[j];
+        }
+    }
+    return ret;
+}
+
+/**
+ * Deep equality test for nested arrays.
+ *
+ * @param x     First value.
+ * @param y     Second value.
+ * @returns     True if deeply equal.
+ */
+export function same(x: any, y: any): boolean {
+    if (typeof x !== typeof y) return false;
+    if (typeof x === 'number') return x === y;
+    if (!Array.isArray(x) || !Array.isArray(y)) return false;
+    if (x.length !== y.length) return false;
+    for (let i = x.length - 1; i >= 0; i--) {
+        if (!same(x[i], y[i])) return false;
+    }
+    return true;
+}
+
+/**
+ * Computes the outer product (tensor product) of two vectors.
+ *
+ * @param x     First vector.
+ * @param y     Second vector.
+ * @returns     The outer product matrix.
+ */
+export function tensor(x: number[], y: number[]): number[][] {
+    const m = x.length;
+    const n = y.length;
+    const ret: number[][] = Array(m);
+    for (let i = m - 1; i >= 0; i--) {
+        const row = Array(n);
+        const xi = x[i];
+        for (let j = n - 1; j >= 0; j--) {
+            row[j] = xi * y[j];
+        }
+        ret[i] = row;
+    }
+    return ret;
+}

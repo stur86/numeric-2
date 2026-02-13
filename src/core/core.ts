@@ -22,8 +22,32 @@ import {
     _re_v_tan,
     _re_v_asin,
     _re_v_acos,
-    _re_v_atan
+    _re_v_atan,
+    _re_v_neg,
+    _re_v_ceil,
+    _re_v_floor,
+    _re_v_round,
+    _re_v_isNaN,
+    _re_v_isFinite,
+    _re_v_clone,
 } from "./maps";
+import {
+    _re_v_addVV, _re_v_addVS, _re_v_addSV,
+    _re_v_subVV, _re_v_subVS, _re_v_subSV,
+    _re_v_mulVV, _re_v_mulVS, _re_v_mulSV,
+    _re_v_divVV, _re_v_divVS, _re_v_divSV,
+    _re_v_modVV, _re_v_modVS, _re_v_modSV,
+    _re_v_powVV, _re_v_powVS, _re_v_powSV,
+    _re_v_atan2VV, _re_v_atan2VS, _re_v_atan2SV,
+    _re_v_maxVV, _re_v_maxVS, _re_v_maxSV,
+    _re_v_minVV, _re_v_minVS, _re_v_minSV,
+    _re_v_eqVV, _re_v_eqVS, _re_v_eqSV,
+    _re_v_neqVV, _re_v_neqVS, _re_v_neqSV,
+    _re_v_ltVV, _re_v_ltVS, _re_v_ltSV,
+    _re_v_gtVV, _re_v_gtVS, _re_v_gtSV,
+    _re_v_leqVV, _re_v_leqVS, _re_v_leqSV,
+    _re_v_geqVV, _re_v_geqVS, _re_v_geqSV,
+} from "./binops";
 
 export default class NumericCore {
     // Reducers
@@ -48,4 +72,57 @@ export default class NumericCore {
     static _re_v_asin = _re_v_asin;
     static _re_v_acos = _re_v_acos;
     static _re_v_atan = _re_v_atan;
+    static _re_v_neg = _re_v_neg;
+    static _re_v_ceil = _re_v_ceil;
+    static _re_v_floor = _re_v_floor;
+    static _re_v_round = _re_v_round;
+    static _re_v_isNaN = _re_v_isNaN;
+    static _re_v_isFinite = _re_v_isFinite;
+    static _re_v_clone = _re_v_clone;
+    // Binary ops
+    static _re_v_addVV = _re_v_addVV;
+    static _re_v_addVS = _re_v_addVS;
+    static _re_v_addSV = _re_v_addSV;
+    static _re_v_subVV = _re_v_subVV;
+    static _re_v_subVS = _re_v_subVS;
+    static _re_v_subSV = _re_v_subSV;
+    static _re_v_mulVV = _re_v_mulVV;
+    static _re_v_mulVS = _re_v_mulVS;
+    static _re_v_mulSV = _re_v_mulSV;
+    static _re_v_divVV = _re_v_divVV;
+    static _re_v_divVS = _re_v_divVS;
+    static _re_v_divSV = _re_v_divSV;
+    static _re_v_modVV = _re_v_modVV;
+    static _re_v_modVS = _re_v_modVS;
+    static _re_v_modSV = _re_v_modSV;
+    static _re_v_powVV = _re_v_powVV;
+    static _re_v_powVS = _re_v_powVS;
+    static _re_v_powSV = _re_v_powSV;
+    static _re_v_atan2VV = _re_v_atan2VV;
+    static _re_v_atan2VS = _re_v_atan2VS;
+    static _re_v_atan2SV = _re_v_atan2SV;
+    static _re_v_maxVV = _re_v_maxVV;
+    static _re_v_maxVS = _re_v_maxVS;
+    static _re_v_maxSV = _re_v_maxSV;
+    static _re_v_minVV = _re_v_minVV;
+    static _re_v_minVS = _re_v_minVS;
+    static _re_v_minSV = _re_v_minSV;
+    static _re_v_eqVV = _re_v_eqVV;
+    static _re_v_eqVS = _re_v_eqVS;
+    static _re_v_eqSV = _re_v_eqSV;
+    static _re_v_neqVV = _re_v_neqVV;
+    static _re_v_neqVS = _re_v_neqVS;
+    static _re_v_neqSV = _re_v_neqSV;
+    static _re_v_ltVV = _re_v_ltVV;
+    static _re_v_ltVS = _re_v_ltVS;
+    static _re_v_ltSV = _re_v_ltSV;
+    static _re_v_gtVV = _re_v_gtVV;
+    static _re_v_gtVS = _re_v_gtVS;
+    static _re_v_gtSV = _re_v_gtSV;
+    static _re_v_leqVV = _re_v_leqVV;
+    static _re_v_leqVS = _re_v_leqVS;
+    static _re_v_leqSV = _re_v_leqSV;
+    static _re_v_geqVV = _re_v_geqVV;
+    static _re_v_geqVS = _re_v_geqVS;
+    static _re_v_geqSV = _re_v_geqSV;
 };

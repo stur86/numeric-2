@@ -2,6 +2,8 @@ import { VectorReducerMetaFunction } from "./reducer";
 import type { VectorReducerMetaFunctionArgs } from "./reducer";
 import { VectorMapMetaFunction } from "./map";
 import type { VectorMapMetaFunctionArgs } from "./map";
+import { VectorBinopMetaFunction } from "./binop";
+import type { VectorBinopMetaFunctionArgs } from "./binop";
 
 
 /**
@@ -56,6 +58,13 @@ const mapArgs: VectorMapMetaFunctionArgs[] = [
     { name: '_re_v_asin', mapElement: 'Math.asin(x_i)' },
     { name: '_re_v_acos', mapElement: 'Math.acos(x_i)' },
     { name: '_re_v_atan', mapElement: 'Math.atan(x_i)' },
+    { name: '_re_v_neg', mapElement: '-x_i' },
+    { name: '_re_v_ceil', mapElement: 'Math.ceil(x_i)' },
+    { name: '_re_v_floor', mapElement: 'Math.floor(x_i)' },
+    { name: '_re_v_round', mapElement: 'Math.round(x_i)' },
+    { name: '_re_v_isNaN', mapElement: 'Number.isNaN(x_i)' },
+    { name: '_re_v_isFinite', mapElement: 'Number.isFinite(x_i)' },
+    { name: '_re_v_clone', mapElement: 'x_i' },
 ];
 
 let mapSource = "";
@@ -65,4 +74,37 @@ for (const mArgs of mapArgs) {
     mapSource += map.compileSource() + '\n\n';
 }
 Bun.write(mapFile, mapSource);
+console.log("_____\n");
+
+// Binary operations
+const binopFile = targetDir + "binops.ts";
+console.log(`Generating binary ops in ${binopFile}:`);
+const binopArgs: VectorBinopMetaFunctionArgs[] = [
+    // Arithmetic
+    { name: 'add', expression: 'x_i + y_i' },
+    { name: 'sub', expression: 'x_i - y_i' },
+    { name: 'mul', expression: 'x_i * y_i' },
+    { name: 'div', expression: 'x_i / y_i' },
+    { name: 'mod', expression: 'x_i % y_i' },
+    // Math
+    { name: 'pow', expression: 'Math.pow(x_i, y_i)' },
+    { name: 'atan2', expression: 'Math.atan2(x_i, y_i)' },
+    { name: 'max', expression: 'Math.max(x_i, y_i)' },
+    { name: 'min', expression: 'Math.min(x_i, y_i)' },
+    // Comparison
+    { name: 'eq', expression: 'x_i === y_i' },
+    { name: 'neq', expression: 'x_i !== y_i' },
+    { name: 'lt', expression: 'x_i < y_i' },
+    { name: 'gt', expression: 'x_i > y_i' },
+    { name: 'leq', expression: 'x_i <= y_i' },
+    { name: 'geq', expression: 'x_i >= y_i' },
+];
+
+let binopSource = "";
+for (const bArgs of binopArgs) {
+    const binop = new VectorBinopMetaFunction(bArgs);
+    console.log(`  ${binop.name} (VV, VS, SV)`);
+    binopSource += binop.compileAllSource() + '\n\n';
+}
+Bun.write(binopFile, binopSource);
 console.log("_____\n");

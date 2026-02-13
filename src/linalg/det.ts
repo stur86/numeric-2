@@ -1,0 +1,58 @@
+import { clone } from "../utils";
+
+/**
+ * Determinant of a square matrix via Gaussian elimination with partial pivoting.
+ *
+ * @param x     A square matrix.
+ * @returns     The determinant.
+ */
+export function det(x: number[][]): number {
+    const n = x.length;
+    const A = clone(x) as number[][];
+    let ret = 1;
+
+    for (let j = 0; j < n; j++) {
+        // Partial pivoting
+        let maxVal = Math.abs(A[j][j]);
+        let maxRow = j;
+        for (let i = j + 1; i < n; i++) {
+            const v = Math.abs(A[i][j]);
+            if (v > maxVal) {
+                maxVal = v;
+                maxRow = i;
+            }
+        }
+
+        if (maxRow !== j) {
+            const tmp = A[j];
+            A[j] = A[maxRow];
+            A[maxRow] = tmp;
+            ret *= -1;
+        }
+
+        const Aj = A[j];
+        const pivot = Aj[j];
+
+        if (pivot === 0) return 0;
+
+        ret *= pivot;
+
+        // Eliminate below
+        for (let i = j + 1; i < n; i++) {
+            const Ai = A[i];
+            const factor = Ai[j] / pivot;
+            // 2x unrolled
+            let k = j + 1;
+            const n1 = n - 1;
+            for (; k < n1; k += 2) {
+                Ai[k] -= factor * Aj[k];
+                Ai[k + 1] -= factor * Aj[k + 1];
+            }
+            if (k === n1) {
+                Ai[k] -= factor * Aj[k];
+            }
+        }
+    }
+
+    return ret;
+}
