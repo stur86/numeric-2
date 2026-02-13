@@ -59,6 +59,17 @@ Following the original numeric.js:
 - Snapshot tests for generated code in `meta/__snapshots__/`
 - Correctness tests alongside each module (`.test.ts` files)
 
+### NumPy Cross-Validation (`tests/`)
+
+A cross-language validation framework that compares numeric-2 results against NumPy:
+
+- `tests/oracle.py` — Python script that accepts NDJSON on stdin, generates seeded random data with NumPy, computes reference results, and outputs NDJSON responses with both inputs and expected outputs.
+- `tests/runner.ts` — Bun helper that spawns `uv run python tests/oracle.py`, sends requests, and parses responses. Provides `oracle()`, `assertClose()`, `assertClose2D()`, `assertScalarClose()`.
+- `tests/pyproject.toml` — uv project config (numpy dependency). Run `cd tests && uv sync` to install.
+- Test files: `unary.test.ts`, `binary.test.ts`, `reducers.test.ts`, `dot.test.ts`, `linalg.test.ts`
+
+The oracle returns inputs and expected outputs so the TS side uses the oracle's inputs directly (no cross-language RNG matching needed). Note: JS `%` uses truncated division (`np.fmod`), not floored division (`np.mod`).
+
 ## Building
 
 - `npm run build` — Builds ESM, minified ESM, UMD, and minified UMD bundles into `dist/`
