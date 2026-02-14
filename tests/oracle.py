@@ -19,6 +19,9 @@ Request formats:
   {"op": "cx_neg", "seed": 42, "n": 100}                        # complex unary
   {"op": "cx_add", "variant": "VV", "seed": 42, "n": 100}       # complex binary
   {"op": "cx_norm2", "seed": 42, "n": 100}                      # complex reducer
+  {"op": "getBlock", "seed": 42, "m": 8, "n": 6, "r0": 1, "c0": 2, "r1": 5, "c1": 5}  # submatrix
+  {"op": "getBlock1D", "seed": 42, "n": 20, "from": 3, "to": 12}                       # subvector
+  {"op": "cx_dot_VV", "seed": 42, "n": 10}                      # complex dot product
 
 Response format:
   {"inputs": {...}, "expected": ...}
@@ -277,6 +280,37 @@ def handle_cx_reducer(req: dict) -> dict:
     return {"inputs": {"x": cx_to_parts(x)}, "expected": float(result)}
 
 
+def handle_getBlock(req: dict) -> dict:
+    rng = np.random.default_rng(req["seed"])
+    m, n = req["m"], req["n"]
+    r0, c0, r1, c1 = req["r0"], req["c0"], req["r1"], req["c1"]
+    A = rng.standard_normal((m, n))
+    result = A[r0:r1, c0:c1]
+    return {"inputs": {"A": A.tolist()}, "expected": result.tolist()}
+
+
+def handle_getBlock1D(req: dict) -> dict:
+    rng = np.random.default_rng(req["seed"])
+    n = req["n"]
+    fr, to = req["from"], req["to"]
+    x = rng.standard_normal(n)
+    result = x[fr:to]
+    return {"inputs": {"x": x.tolist()}, "expected": result.tolist()}
+
+
+def handle_cx_dot_VV(req: dict) -> dict:
+    rng = np.random.default_rng(req["seed"])
+    n = req["n"]
+    x = rng.standard_normal(n) + 1j * rng.standard_normal(n)
+    y = rng.standard_normal(n) + 1j * rng.standard_normal(n)
+    # unconjugated dot: sum(x_i * y_i), not the Hermitian inner product
+    result = complex(np.sum(x * y))
+    return {
+        "inputs": {"x": cx_to_parts(x), "y": cx_to_parts(y)},
+        "expected": {"re": float(result.real), "im": float(result.imag)},
+    }
+
+
 def process(req: dict) -> dict:
     op = req["op"]
 
@@ -300,6 +334,12 @@ def process(req: dict) -> dict:
         return handle_cx_binary(req)
     elif op in CX_REDUCERS:
         return handle_cx_reducer(req)
+    elif op == "getBlock":
+        return handle_getBlock(req)
+    elif op == "getBlock1D":
+        return handle_getBlock1D(req)
+    elif op == "cx_dot_VV":
+        return handle_cx_dot_VV(req)
     else:
         raise ValueError(f"Unknown op: {op}")
 
