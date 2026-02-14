@@ -1,6 +1,8 @@
-The goal of this project is to convert the Numeric.js library as faithfully as possible to TypeScript; we want to adapt its patterns
+The goal of this project is to convert the Numeric.js library to TypeScript; we want to adapt its patterns
 to TypeScript's own modern features, and ditch the use of evals at runtime which prevent it to function in many modern interpreters as unsafe,
 while preserving as much as possible its high performance (for single-threaded CPU JS).
+
+Important: **we are aiming at functionality parity but not necessarily 1:1 API correspondence**. For example, we are not using the `numeric.T` class, in favour of `Vector` and `Matrix` classes.
 
 The original numeric.js is at `../numeric` relative to this project. Its documentation is at https://ccc-js.github.io/numeric2/documentation.html
 
@@ -29,7 +31,9 @@ The original numeric.js is at `../numeric` relative to this project. Its documen
   - `lu.ts` — LU decomposition, LUsolve, solve.
   - `inv.ts` — Matrix inverse via Gauss-Jordan.
   - `det.ts` — Determinant via Gaussian elimination.
-  - `house.ts` — Householder reflection (`house`), `epsilon`, `cxScalarDiv`.
+  - `house.ts` — Householder reflection (`house`), upper Hessenberg reduction (`toUpperHessenberg`), QR Francis iteration (`QRFrancis`), `epsilon`.
+  - `cxmat.ts` — Complex matrix/vector/scalar helpers (`CxMatrix`, `CxVector`, `CxScalar` types) for eigenvalue decomposition. Lightweight standalone functions operating on `[number[][], number[][] | null]` pairs with lazy imaginary allocation.
+  - `eig.ts` — Eigenvalue decomposition (`eig`). Pipeline: Householder → QR Francis → 2×2 block processing → back-substitution. Returns `{lambda: CxVector, E: CxMatrix}` satisfying `A * E = E * diag(lambda)`.
 
 ## Meta-Generation System
 
@@ -171,7 +175,7 @@ A cross-language validation framework that compares numeric-2 results against Nu
 - `tests/oracle.py` — Python script that accepts NDJSON on stdin, generates seeded random data with NumPy, computes reference results, and outputs NDJSON responses with both inputs and expected outputs.
 - `tests/runner.ts` — Bun helper that spawns `uv run python tests/oracle.py`, sends requests, and parses responses. Provides `oracle()`, `assertClose()`, `assertClose2D()`, `assertScalarClose()`.
 - `tests/pyproject.toml` — uv project config (numpy dependency). Run `cd tests && uv sync` to install.
-- Test files: `unary.test.ts`, `binary.test.ts`, `reducers.test.ts`, `dot.test.ts`, `linalg.test.ts`, `complex.test.ts`
+- Test files: `unary.test.ts`, `binary.test.ts`, `reducers.test.ts`, `dot.test.ts`, `linalg.test.ts`, `complex.test.ts`, `eig.test.ts`, `utilities.test.ts`, `complex-dispatch.test.ts`
 
 The oracle returns inputs and expected outputs so the TS side uses the oracle's inputs directly (no cross-language RNG matching needed). Note: JS `%` uses truncated division (`np.fmod`), not floored division (`np.mod`).
 

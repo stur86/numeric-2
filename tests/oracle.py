@@ -311,6 +311,24 @@ def handle_cx_dot_VV(req: dict) -> dict:
     }
 
 
+def handle_eig(req: dict) -> dict:
+    rng = np.random.default_rng(req["seed"])
+    n = req["n"]
+    A = rng.standard_normal((n, n))
+    eigenvalues = np.linalg.eigvals(A)
+    # Sort eigenvalues lexicographically (real part, then imaginary part) for stable comparison
+    idx = np.lexsort((eigenvalues.imag, eigenvalues.real))
+    eigenvalues = eigenvalues[idx]
+    return {
+        "inputs": {"A": A.tolist()},
+        "expected": {
+            "eigenvalues": cx_to_parts(eigenvalues),
+            "trace": float(np.trace(A)),
+            "det": float(np.real(np.linalg.det(A))),
+        }
+    }
+
+
 def process(req: dict) -> dict:
     op = req["op"]
 
@@ -340,6 +358,8 @@ def process(req: dict) -> dict:
         return handle_getBlock1D(req)
     elif op == "cx_dot_VV":
         return handle_cx_dot_VV(req)
+    elif op == "eig":
+        return handle_eig(req)
     else:
         raise ValueError(f"Unknown op: {op}")
 

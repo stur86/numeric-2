@@ -15,7 +15,7 @@ export type OracleRequest =
 
 export type OracleResponse = {
     inputs: Record<string, number | number[] | number[][]>;
-    expected: number | number[] | number[][];
+    expected: number | number[] | number[][] | object;
 };
 
 const testsDir = import.meta.dir;

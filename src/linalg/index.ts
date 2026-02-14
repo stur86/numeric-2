@@ -13,3 +13,13 @@ import { det } from "./det";
 
 export { LU, LUsolve, solve, inv, det };
 export type { LUPResult };
+
+import { house, toUpperHessenberg, QRFrancis, epsilon } from "./house";
+import type { HessenbergResult, QRFrancisResult } from "./house";
+import { eig } from "./eig";
+import type { EigResult } from "./eig";
+
+export { house, toUpperHessenberg, QRFrancis, epsilon, eig };
+export type { HessenbergResult, QRFrancisResult, EigResult };
+
+export type { MatrixLike, VectorLike } from "./wrap";
