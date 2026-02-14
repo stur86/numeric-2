@@ -16,6 +16,9 @@ Request formats:
   {"op": "solve", "seed": 42, "n": 5}                           # linear solve
   {"op": "inv", "seed": 42, "n": 5}                             # matrix inverse
   {"op": "det", "seed": 42, "n": 5}                             # determinant
+  {"op": "cx_neg", "seed": 42, "n": 100}                        # complex unary
+  {"op": "cx_add", "variant": "VV", "seed": 42, "n": 100}       # complex binary
+  {"op": "cx_norm2", "seed": 42, "n": 100}                      # complex reducer
 
 Response format:
   {"inputs": {...}, "expected": ...}
@@ -193,6 +196,87 @@ def handle_det(req: dict) -> dict:
     return {"inputs": {"A": A.tolist()}, "expected": result}
 
 
+CX_UNARY_OPS = {
+    "cx_neg": np.negative,
+    "cx_conj": np.conj,
+    "cx_abs": np.abs,
+    "cx_clone": lambda x: x.copy(),
+}
+
+CX_BINARY_OPS = {
+    "cx_add": np.add,
+    "cx_sub": np.subtract,
+    "cx_mul": np.multiply,
+    "cx_div": np.divide,
+}
+
+CX_REDUCERS = {
+    "cx_norm2": np.linalg.norm,
+    "cx_norm2squared": lambda x: float(np.sum(np.abs(x)**2)),
+    "cx_norm1": lambda x: float(np.sum(np.abs(x))),
+}
+
+
+def cx_to_parts(z):
+    """Convert complex array/scalar to {re, im} dict."""
+    if np.isscalar(z):
+        return {"re": float(np.real(z)), "im": float(np.imag(z))}
+    return {"re": np.real(z).tolist(), "im": np.imag(z).tolist()}
+
+
+def handle_cx_unary(req: dict) -> dict:
+    rng = np.random.default_rng(req["seed"])
+    n = req["n"]
+    op = req["op"]
+
+    x = rng.standard_normal(n) + 1j * rng.standard_normal(n)
+    fn = CX_UNARY_OPS[op]
+    result = fn(x)
+    return {"inputs": {"x": cx_to_parts(x)}, "expected": cx_to_parts(result)}
+
+
+def handle_cx_binary(req: dict) -> dict:
+    rng = np.random.default_rng(req["seed"])
+    n = req["n"]
+    op = req["op"]
+    variant = req["variant"]
+
+    x_arr = rng.standard_normal(n) + 1j * rng.standard_normal(n)
+    y_arr = rng.standard_normal(n) + 1j * rng.standard_normal(n)
+    scalar = complex(rng.standard_normal(), rng.standard_normal())
+
+    if op == "cx_div":
+        # avoid division by zero
+        y_arr = np.where(np.abs(y_arr) < 1e-10, 1.0 + 0j, y_arr)
+        if abs(scalar) < 1e-10:
+            scalar = 1.0 + 0j
+
+    fn = CX_BINARY_OPS[op]
+
+    if variant == "VV":
+        result = fn(x_arr, y_arr)
+        return {"inputs": {"x": cx_to_parts(x_arr), "y": cx_to_parts(y_arr)}, "expected": cx_to_parts(result)}
+    elif variant == "VS":
+        result = fn(x_arr, scalar)
+        return {"inputs": {"x": cx_to_parts(x_arr), "y": cx_to_parts(scalar)}, "expected": cx_to_parts(result)}
+    elif variant == "SV":
+        result = fn(scalar, y_arr)
+        return {"inputs": {"x": cx_to_parts(scalar), "y": cx_to_parts(y_arr)}, "expected": cx_to_parts(result)}
+    else:
+        raise ValueError(f"Unknown variant: {variant}")
+
+
+def handle_cx_reducer(req: dict) -> dict:
+    rng = np.random.default_rng(req["seed"])
+    n = req["n"]
+    op = req["op"]
+
+    x = rng.standard_normal(n) + 1j * rng.standard_normal(n)
+    fn = CX_REDUCERS[op]
+    result = fn(x)
+    return {"inputs": {"x": cx_to_parts(x)}, "expected": float(result)}
+
+
 def process(req: dict) -> dict:
     op = req["op"]
 
@@ -210,6 +294,12 @@ def process(req: dict) -> dict:
         return handle_inv(req)
     elif op == "det":
         return handle_det(req)
+    elif op in CX_UNARY_OPS:
+        return handle_cx_unary(req)
+    elif op in CX_BINARY_OPS:
+        return handle_cx_binary(req)
+    elif op in CX_REDUCERS:
+        return handle_cx_reducer(req)
     else:
         raise ValueError(f"Unknown op: {op}")
 

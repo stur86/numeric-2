@@ -48,6 +48,23 @@ import {
     _re_v_leqVV, _re_v_leqVS, _re_v_leqSV,
     _re_v_geqVV, _re_v_geqVS, _re_v_geqSV,
 } from "./binops";
+import {
+    _cx_v_neg,
+    _cx_v_conj,
+    _cx_v_abs,
+    _cx_v_clone,
+} from "./cx.maps";
+import {
+    _cx_v_addVV, _cx_v_addVS, _cx_v_addSV,
+    _cx_v_subVV, _cx_v_subVS, _cx_v_subSV,
+    _cx_v_mulVV, _cx_v_mulVS, _cx_v_mulSV,
+    _cx_v_divVV, _cx_v_divVS, _cx_v_divSV,
+} from "./cx.binops";
+import {
+    _cx_v_norm2,
+    _cx_v_norm2squared,
+    _cx_v_norm1,
+} from "./cx.reducers";
 
 export default class NumericCore {
     // Reducers
@@ -125,4 +142,26 @@ export default class NumericCore {
     static _re_v_geqVV = _re_v_geqVV;
     static _re_v_geqVS = _re_v_geqVS;
     static _re_v_geqSV = _re_v_geqSV;
+    // Complex maps
+    static _cx_v_neg = _cx_v_neg;
+    static _cx_v_conj = _cx_v_conj;
+    static _cx_v_abs = _cx_v_abs;
+    static _cx_v_clone = _cx_v_clone;
+    // Complex binary ops
+    static _cx_v_addVV = _cx_v_addVV;
+    static _cx_v_addVS = _cx_v_addVS;
+    static _cx_v_addSV = _cx_v_addSV;
+    static _cx_v_subVV = _cx_v_subVV;
+    static _cx_v_subVS = _cx_v_subVS;
+    static _cx_v_subSV = _cx_v_subSV;
+    static _cx_v_mulVV = _cx_v_mulVV;
+    static _cx_v_mulVS = _cx_v_mulVS;
+    static _cx_v_mulSV = _cx_v_mulSV;
+    static _cx_v_divVV = _cx_v_divVV;
+    static _cx_v_divVS = _cx_v_divVS;
+    static _cx_v_divSV = _cx_v_divSV;
+    // Complex reducers
+    static _cx_v_norm2 = _cx_v_norm2;
+    static _cx_v_norm2squared = _cx_v_norm2squared;
+    static _cx_v_norm1 = _cx_v_norm1;
 };

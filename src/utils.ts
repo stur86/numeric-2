@@ -250,6 +250,48 @@ export function same(x: any, y: any): boolean {
 }
 
 /**
+ * Extracts a submatrix from a 2D matrix.
+ *
+ * @param A      The source matrix.
+ * @param r0     Start row (inclusive).
+ * @param c0     Start column (inclusive).
+ * @param r1     End row (exclusive).
+ * @param c1     End column (exclusive).
+ * @returns      The submatrix.
+ */
+export function getBlock(A: number[][], r0: number, c0: number, r1: number, c1: number): number[][] {
+    const rows = r1 - r0;
+    const cols = c1 - c0;
+    const ret: number[][] = Array(rows);
+    for (let i = rows - 1; i >= 0; i--) {
+        const row = Array(cols);
+        const srcRow = A[r0 + i];
+        for (let j = cols - 1; j >= 0; j--) {
+            row[j] = srcRow[c0 + j];
+        }
+        ret[i] = row;
+    }
+    return ret;
+}
+
+/**
+ * Extracts a slice from a 1D array.
+ *
+ * @param x      The source array.
+ * @param from   Start index (inclusive).
+ * @param to     End index (exclusive).
+ * @returns      The slice.
+ */
+export function getBlock1D(x: number[], from: number, to: number): number[] {
+    const n = to - from;
+    const ret = Array(n);
+    for (let i = n - 1; i >= 0; i--) {
+        ret[i] = x[from + i];
+    }
+    return ret;
+}
+
+/**
  * Computes the outer product (tensor product) of two vectors.
  *
  * @param x     First vector.

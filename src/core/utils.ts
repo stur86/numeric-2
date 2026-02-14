@@ -83,13 +83,25 @@ export class BinaryMethod {
         if (this.optype == "v") {
             if (leftIsScalar) {
                 this.args.push(left);
+                if (this.dtype == "cx") {
+                    this.args.push(0); // imaginary part of scalar is 0
+                }
             } else {
                 this.args.push((left as TensorBase).real);
+                if (this.dtype == "cx") {
+                    this.args.push((left as TensorBase).imag);
+                }
             }
             if (rightIsScalar) {
                 this.args.push(right);
+                if (this.dtype == "cx") {
+                    this.args.push(0); // imaginary part of scalar is 0
+                }
             } else {
                 this.args.push((right as TensorBase).real);
+                if (this.dtype == "cx") {
+                    this.args.push((right as TensorBase).imag);
+                }
             }
             this.args.push(tensor.shape[0]);
         }

@@ -1,0 +1,9 @@
+export function $NAME($ARGS, n: number): [number[], number[]] {
+    let i = n-1;
+    const ans_re = Array(n), ans_im = Array(n);
+    for (; i >= 0; i -= 1) {
+        ans_re[i] = $EXPRESSION_RE;
+        ans_im[i] = $EXPRESSION_IM;
+    }
+    return [ans_re, ans_im];
+}

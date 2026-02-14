@@ -1,0 +1,9 @@
+export function $NAME(x_re: number[], x_im: number[], n: number): [number[], number[]] {
+    let i = n-1;
+    const ans_re = Array(n), ans_im = Array(n);
+    for (; i >= 0; i -= 1) {
+        ans_re[i] = $MAP_RE;
+        ans_im[i] = $MAP_IM;
+    }
+    return [ans_re, ans_im];
+}

@@ -4,6 +4,12 @@ import { VectorMapMetaFunction } from "./map";
 import type { VectorMapMetaFunctionArgs } from "./map";
 import { VectorBinopMetaFunction } from "./binop";
 import type { VectorBinopMetaFunctionArgs } from "./binop";
+import { CxVectorMapMetaFunction } from "./cx.map";
+import type { CxVectorMapMetaFunctionArgs } from "./cx.map";
+import { CxVectorBinopMetaFunction } from "./cx.binop";
+import type { CxVectorBinopMetaFunctionArgs } from "./cx.binop";
+import { CxVectorReducerMetaFunction } from "./cx.reducer";
+import type { CxVectorReducerMetaFunctionArgs } from "./cx.reducer";
 
 
 /**
@@ -107,4 +113,60 @@ for (const bArgs of binopArgs) {
     binopSource += binop.compileAllSource() + '\n\n';
 }
 Bun.write(binopFile, binopSource);
+console.log("_____\n");
+
+// Complex maps
+const cxMapFile = targetDir + "cx.maps.ts";
+console.log(`Generating complex maps in ${cxMapFile}:`);
+const cxMapArgs: CxVectorMapMetaFunctionArgs[] = [
+    { name: '_cx_v_neg', mapRe: '-x_re_i', mapIm: '-x_im_i' },
+    { name: '_cx_v_conj', mapRe: 'x_re_i', mapIm: '-x_im_i' },
+    { name: '_cx_v_abs', mapRe: 'Math.sqrt(x_re_i*x_re_i+x_im_i*x_im_i)', mapIm: '0' },
+    { name: '_cx_v_clone', mapRe: 'x_re_i', mapIm: 'x_im_i' },
+];
+
+let cxMapSource = "";
+for (const mArgs of cxMapArgs) {
+    const map = new CxVectorMapMetaFunction(mArgs);
+    console.log(`  ${map.name}`);
+    cxMapSource += map.compileSource() + '\n\n';
+}
+Bun.write(cxMapFile, cxMapSource);
+console.log("_____\n");
+
+// Complex binary operations
+const cxBinopFile = targetDir + "cx.binops.ts";
+console.log(`Generating complex binary ops in ${cxBinopFile}:`);
+const cxBinopArgs: CxVectorBinopMetaFunctionArgs[] = [
+    { name: 'add', expressionRe: 'x_re_i + y_re_i', expressionIm: 'x_im_i + y_im_i' },
+    { name: 'sub', expressionRe: 'x_re_i - y_re_i', expressionIm: 'x_im_i - y_im_i' },
+    { name: 'mul', expressionRe: 'x_re_i*y_re_i - x_im_i*y_im_i', expressionIm: 'x_re_i*y_im_i + x_im_i*y_re_i' },
+    { name: 'div', expressionRe: '(x_re_i*y_re_i+x_im_i*y_im_i)/(y_re_i*y_re_i+y_im_i*y_im_i)', expressionIm: '(x_im_i*y_re_i-x_re_i*y_im_i)/(y_re_i*y_re_i+y_im_i*y_im_i)' },
+];
+
+let cxBinopSource = "";
+for (const bArgs of cxBinopArgs) {
+    const binop = new CxVectorBinopMetaFunction(bArgs);
+    console.log(`  ${binop.name} (VV, VS, SV)`);
+    cxBinopSource += binop.compileAllSource() + '\n\n';
+}
+Bun.write(cxBinopFile, cxBinopSource);
+console.log("_____\n");
+
+// Complex reducers
+const cxReducerFile = targetDir + "cx.reducers.ts";
+console.log(`Generating complex reducers in ${cxReducerFile}:`);
+const cxReducerArgs: CxVectorReducerMetaFunctionArgs[] = [
+    { name: '_cx_v_norm2', reduceElement: 'x_re_i*x_re_i+x_im_i*x_im_i', reduceOperator: '+=', resultTransform: 'Math.sqrt(ans)' },
+    { name: '_cx_v_norm2squared', reduceElement: 'x_re_i*x_re_i+x_im_i*x_im_i', reduceOperator: '+=' },
+    { name: '_cx_v_norm1', reduceElement: 'Math.sqrt(x_re_i*x_re_i+x_im_i*x_im_i)', reduceOperator: '+=' },
+];
+
+let cxReducerSource = "";
+for (const rArgs of cxReducerArgs) {
+    const reducer = new CxVectorReducerMetaFunction(rArgs);
+    console.log(`  ${reducer.name}`);
+    cxReducerSource += reducer.compileSource() + '\n\n';
+}
+Bun.write(cxReducerFile, cxReducerSource);
 console.log("_____\n");
