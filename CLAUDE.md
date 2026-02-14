@@ -175,6 +175,8 @@ A cross-language validation framework that compares numeric-2 results against Nu
 
 The oracle returns inputs and expected outputs so the TS side uses the oracle's inputs directly (no cross-language RNG matching needed). Note: JS `%` uses truncated division (`np.fmod`), not floored division (`np.mod`).
 
+**Remember to always add new cross-validation tests after implementing new functionality.**
+
 ## Building
 
 - `npm run build` — Builds ESM, minified ESM, UMD, and minified UMD bundles into `dist/`
