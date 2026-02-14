@@ -8,6 +8,7 @@
 
 import Vector from "../vector";
 import Matrix from "../matrix";
+import type { CxMatrix } from "./cxmat";
 
 /** A Matrix instance or a raw 2D array. */
 export type MatrixLike = Matrix | number[][];
@@ -25,4 +26,12 @@ export function toRawMatrix(x: MatrixLike): number[][] {
 export function toRawVector(x: VectorLike): number[] {
     if (x instanceof Vector) return x.real as number[];
     return x;
+}
+
+/** Extract a CxMatrix from a MatrixLike. For raw number[][], imag is null. */
+export function toRawCxMatrix(x: MatrixLike): CxMatrix {
+    if (x instanceof Matrix) {
+        return [x.real as number[][], x.imag as number[][] | null];
+    }
+    return [x, null];
 }

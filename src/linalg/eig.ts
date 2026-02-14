@@ -1,14 +1,15 @@
 /**
- * Eigenvalue decomposition of a real square matrix.
- * Ported from numeric.js: Householder → QR Francis → eigenvector extraction.
+ * Eigenvalue decomposition of a square matrix (real or complex).
+ * Ported from numeric.js: Householder → QR → eigenvector extraction.
  */
 
 import { transpose } from "../utils";
 import { dotMMsmall } from "../core/dot";
 import Vector from "../vector";
 import Matrix from "../matrix";
-import { type MatrixLike, toRawMatrix } from "./wrap";
+import { type MatrixLike, toRawMatrix, toRawCxMatrix } from "./wrap";
 import { toUpperHessenberg, QRFrancis } from "./house";
+import { cxToUpperHessenberg, cxQR } from "./cxhouse";
 import {
     type CxMatrix,
     cxDotMM, cxTranspose, cxTransjugate,
@@ -25,31 +26,72 @@ export type EigResult = {
 };
 
 /**
- * Eigenvalue decomposition of a real square matrix.
+ * Back-substitution for eigenvectors from a (quasi-)triangular Schur form.
+ * Shared by both the real and complex eig paths.
  *
- * Returns {lambda, E} where lambda contains eigenvalues (possibly complex)
- * and columns of E are the corresponding eigenvectors.
- *
- * A * E = E * diag(lambda)
- *
- * @param A        Real square matrix (Matrix or number[][])
- * @param maxiter  Maximum QR iterations (default 10000)
+ * @param Q   Unitary transformation matrix (CxMatrix)
+ * @param R   Upper triangular Schur form (CxMatrix)
+ * @param n   Matrix dimension
  */
-export function eig(A: MatrixLike, maxiter?: number): EigResult {
-    if (A instanceof Matrix && A.is_complex) {
-        throw new Error("eig: input matrix must be real");
+function eigBackSubstitute(Q: CxMatrix, R: CxMatrix, n: number): EigResult {
+    const E: CxMatrix = cxIdentity(n);
+
+    for (let jj = 0; jj < n; jj++) {
+        if (jj > 0) {
+            for (let kk = jj - 1; kk >= 0; kk--) {
+                const Rk = cxGet(R, kk, kk);
+                const Rj = cxGet(R, jj, jj);
+
+                // Check if eigenvalues are distinct
+                if (Rk[0] !== Rj[0] || Rk[1] !== Rj[1]) {
+                    const xv = cxGetBlock1D(cxGetRow(R, kk), kk, jj - 1);
+                    const yv = cxGetBlock1D(cxGetRow(E, jj), kk, jj - 1);
+                    const Rkj = cxGet(R, kk, jj);
+                    const xDotY = cxDotVV(xv, yv);
+                    const num = cxScalarSub(cxScalarNeg(Rkj), xDotY);
+                    const den = cxScalarSub(Rk, Rj);
+                    cxSet(E, jj, kk, cxScalarDiv(num, den));
+                } else {
+                    cxSetRow(E, jj, cxGetRow(E, kk));
+                    break;
+                }
+            }
+        }
     }
-    const rawA = toRawMatrix(A);
+
+    // Normalize rows of E
+    for (let jj = 0; jj < n; jj++) {
+        const row = cxGetRow(E, jj);
+        const norm = cxVectorNorm2(row);
+        if (norm > 0) {
+            cxSetRow(E, jj, cxVectorDivScalar(row, norm));
+        }
+    }
+
+    // Transpose E, then left-multiply by Q^H
+    let Efinal: CxMatrix = cxTranspose(E);
+    Efinal = cxDotMM(cxTransjugate(Q), Efinal);
+
+    const lambdaCx = cxGetDiag(R);
+
+    return {
+        lambda: new Vector(lambdaCx[0], lambdaCx[1]),
+        E: new Matrix(Efinal[0], Efinal[1]),
+    };
+}
+
+/**
+ * Real eigenvalue decomposition path.
+ * Uses real Householder + Francis double-shift QR + 2×2 block processing.
+ */
+function eigReal(rawA: number[][], maxiter?: number): EigResult {
     const n = rawA.length;
 
     // Phase 1: Schur decomposition (real)
     const QH = toUpperHessenberg(rawA);
     const QB = QRFrancis(QH.H, maxiter);
 
-    // H = QB.Q^T * QH.H * QB.Q (similarity transform back)
     const H = dotMMsmall(QB.Q, dotMMsmall(QH.H, transpose(QB.Q)));
-
-    // Q starts as a real CxMatrix
     const Q: CxMatrix = [dotMMsmall(QB.Q, QH.Q), null];
 
     const B = QB.B;
@@ -59,10 +101,7 @@ export function eig(A: MatrixLike, maxiter?: number): EigResult {
     // Phase 2: Process 2×2 blocks to extract complex eigenvalue pairs
     for (let kk = 0; kk < m; kk++) {
         const i = B[kk][0];
-        if (i === B[kk][1]) {
-            // 1×1 block: real eigenvalue, nothing to do
-            continue;
-        }
+        if (i === B[kk][1]) continue;
 
         const j = i + 1;
         const a = H[i][i];
@@ -79,7 +118,6 @@ export function eig(A: MatrixLike, maxiter?: number): EigResult {
         let Q0: CxMatrix;
 
         if (disc >= 0) {
-            // Real eigenvalues from 2×2 block
             let x: number;
             if (p1 < 0) x = -0.5 * (p1 - sqrt(disc));
             else x = -0.5 * (p1 + sqrt(disc));
@@ -100,7 +138,6 @@ export function eig(A: MatrixLike, maxiter?: number): EigResult {
 
             Q0 = [[[q, -p], [p, q]], null];
         } else {
-            // Complex eigenvalues from 2×2 block
             let x = -0.5 * p1;
             let y = 0.5 * sqrt(-disc);
 
@@ -128,63 +165,49 @@ export function eig(A: MatrixLike, maxiter?: number): EigResult {
             ];
         }
 
-        // Q.setRows(i, j, Q0.dot(Q.getRows(i, j)))
         const Qrows = cxGetRows(Q, i, j);
         const newRows = cxDotMM(Q0, Qrows);
         cxSetRows(Q, i, j, newRows);
     }
 
-    // Phase 3: Back-substitution for eigenvectors
-    // R = Q * A * Q^H
+    // Phase 3: Back-substitution
     const R = cxDotMM(cxDotMM(Q, [rawA, null]), cxTransjugate(Q));
+    return eigBackSubstitute(Q, R, n);
+}
 
-    // E starts as identity
-    const E: CxMatrix = cxIdentity(n);
+/**
+ * Complex eigenvalue decomposition path.
+ * Uses complex Householder + single-shift QR (no 2×2 block processing needed).
+ */
+function eigComplex(A: CxMatrix, maxiter?: number): EigResult {
+    const n = A[0].length;
 
-    for (let jj = 0; jj < n; jj++) {
-        if (jj > 0) {
-            for (let kk = jj - 1; kk >= 0; kk--) {
-                const Rk = cxGet(R, kk, kk);
-                const Rj = cxGet(R, jj, jj);
+    // Phase 1: Complex Schur decomposition
+    const QH = cxToUpperHessenberg(A);
+    const schur = cxQR(QH.H, maxiter);
 
-                // Check if eigenvalues are distinct
-                if (Rk[0] !== Rj[0] || Rk[1] !== Rj[1]) {
-                    // x = R.getRow(kk).getBlock(kk, jj-1)
-                    const xv = cxGetBlock1D(cxGetRow(R, kk), kk, jj - 1);
-                    // y = E.getRow(jj).getBlock(kk, jj-1)
-                    const yv = cxGetBlock1D(cxGetRow(E, jj), kk, jj - 1);
-                    // E[jj,kk] = (-R[kk,jj] - x·y) / (Rk - Rj)
-                    const Rkj = cxGet(R, kk, jj);
-                    const xDotY = cxDotVV(xv, yv);
-                    const num = cxScalarSub(cxScalarNeg(Rkj), xDotY);
-                    const den = cxScalarSub(Rk, Rj);
-                    cxSet(E, jj, kk, cxScalarDiv(num, den));
-                } else {
-                    // Same eigenvalue: copy row
-                    cxSetRow(E, jj, cxGetRow(E, kk));
-                    break; // continue outer loop (matches original's "continue")
-                }
-            }
-        }
+    // Combine transformations: Q_total = schur.Q * QH.Q
+    const Q = cxDotMM(schur.Q, QH.Q);
+
+    // T is already upper triangular — use as R directly
+    // (No Phase 2 needed: complex Schur form has no 2×2 blocks)
+    return eigBackSubstitute(Q, schur.T, n);
+}
+
+/**
+ * Eigenvalue decomposition of a square matrix (real or complex).
+ *
+ * Returns {lambda, E} where lambda contains eigenvalues (possibly complex)
+ * and columns of E are the corresponding eigenvectors.
+ *
+ * A * E = E * diag(lambda)
+ *
+ * @param A        Square matrix (Matrix or number[][])
+ * @param maxiter  Maximum QR iterations (default 10000)
+ */
+export function eig(A: MatrixLike, maxiter?: number): EigResult {
+    if (A instanceof Matrix && A.is_complex) {
+        return eigComplex(toRawCxMatrix(A), maxiter);
     }
-
-    // Normalize rows of E
-    for (let jj = 0; jj < n; jj++) {
-        const row = cxGetRow(E, jj);
-        const norm = cxVectorNorm2(row);
-        if (norm > 0) {
-            cxSetRow(E, jj, cxVectorDivScalar(row, norm));
-        }
-    }
-
-    // Transpose E, then left-multiply by Q^H
-    let Efinal: CxMatrix = cxTranspose(E);
-    Efinal = cxDotMM(cxTransjugate(Q), Efinal);
-
-    const lambdaCx = cxGetDiag(R);
-
-    return {
-        lambda: new Vector(lambdaCx[0], lambdaCx[1]),
-        E: new Matrix(Efinal[0], Efinal[1]),
-    };
+    return eigReal(toRawMatrix(A), maxiter);
 }

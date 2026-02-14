@@ -25,6 +25,7 @@ The original numeric.js is at `../numeric` relative to this project. Its documen
   - `utils.ts` — `UnaryMethod` and `BinaryMethod` dispatchers that resolve tensor type/dtype to core functions.
   - `dot.ts` — Low-level dot product implementations (dotVV, dotMV, dotVM, dotMMsmall, dotMMbig).
 - `src/linalg/` — Public linear algebra API:
+  - `wrap.ts` — `MatrixLike`, `VectorLike` type aliases and `toRawMatrix`/`toRawVector` extraction helpers. Bridges the public API (accepts both `Matrix`/`Vector` and raw arrays) to internal algorithms (operate on raw arrays).
   - `norm.ts` — norm2, norm1, norm2squared, normInf.
   - `arithmetic.ts` — Element-wise binary ops (add, sub, mul, div, etc.) on tensors.
   - `dot.ts` — `dot()` dispatcher + re-exports of low-level dot functions.
@@ -32,8 +33,9 @@ The original numeric.js is at `../numeric` relative to this project. Its documen
   - `inv.ts` — Matrix inverse via Gauss-Jordan.
   - `det.ts` — Determinant via Gaussian elimination.
   - `house.ts` — Householder reflection (`house`), upper Hessenberg reduction (`toUpperHessenberg`), QR Francis iteration (`QRFrancis`), `epsilon`.
-  - `cxmat.ts` — Complex matrix/vector/scalar helpers (`CxMatrix`, `CxVector`, `CxScalar` types) for eigenvalue decomposition. Lightweight standalone functions operating on `[number[][], number[][] | null]` pairs with lazy imaginary allocation.
-  - `eig.ts` — Eigenvalue decomposition (`eig`). Pipeline: Householder → QR Francis → 2×2 block processing → back-substitution. Returns `{lambda: CxVector, E: CxMatrix}` satisfying `A * E = E * diag(lambda)`.
+  - `cxmat.ts` — **Internal.** Complex matrix/vector/scalar helpers (`CxMatrix`, `CxVector`, `CxScalar` types) for eigenvalue decomposition. Lightweight standalone functions operating on `[number[][], number[][] | null]` pairs with lazy imaginary allocation. Not exported from the public API.
+  - `cxhouse.ts` — **Internal.** Complex Householder reflection (`cxHouse`), complex upper Hessenberg reduction (`cxToUpperHessenberg`), and complex single-shift QR iteration (`cxQR`). Used by the complex eigenvalue decomposition path.
+  - `eig.ts` — Eigenvalue decomposition (`eig`). Accepts `MatrixLike` (real or complex), returns `{lambda: Vector, E: Matrix}` satisfying `A * E = E * diag(lambda)`. Real matrices use Householder → Francis QR → 2×2 block processing. Complex matrices use complex Householder → single-shift QR (no 2×2 blocks needed). Complex eigenvalues/eigenvectors use the `_im` field on Vector/Matrix.
 
 ## Meta-Generation System
 
@@ -160,6 +162,30 @@ Following the original numeric.js:
 - 2x loop unrolling where beneficial (dot products, transpose, LU)
 - Pre-allocated result arrays (`Array(n)`)
 - Column extraction for large matrix multiply (dotMMbig)
+
+## Public API Pattern
+
+Linalg functions should accept both raw arrays (`number[]`, `number[][]`) and TensorBase objects (`Vector`, `Matrix`), and return `Vector`/`Matrix` instances. This mirrors how numeric.js's `T` class wraps complex data.
+
+- **Input types**: `MatrixLike = Matrix | number[][]`, `VectorLike = Vector | number[]` (defined in `src/linalg/wrap.ts`).
+- **Extraction**: `toRawMatrix(x)` / `toRawVector(x)` cheaply extract the raw `.real` data at the function boundary.
+- **Internal algorithms** operate on raw `number[]` / `number[][]` for performance — no class overhead in hot loops.
+- **Results** are wrapped in `Vector`/`Matrix` at the return boundary, using the `_im` field for complex results.
+- **Internal types** like `CxMatrix`, `CxVector`, `CxScalar` from `cxmat.ts` are NOT exported from the public API.
+
+Example pattern:
+```ts
+export function eig(A: MatrixLike, maxiter?: number): EigResult {
+    const rawA = toRawMatrix(A);
+    // ... internal algorithm on rawA (uses CxMatrix etc.) ...
+    return {
+        lambda: new Vector(lambdaRe, lambdaIm),
+        E: new Matrix(Ere, Eim),
+    };
+}
+```
+
+**When adding new linalg functions, follow this pattern:** accept `MatrixLike`/`VectorLike`, extract raw arrays, compute internally, wrap results.
 
 ## Testing
 
