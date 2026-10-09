@@ -13,9 +13,10 @@
   --grid: #e1e0d9;
   --axis: #c3c2b7;
   --ring: rgba(11, 11, 11, 0.10);
-  --env-bun: #2a78d6;
-  --env-node: #eb6834;
-  --env-browser: #1baf7a;
+  --lib-numeric2: #2a78d6;
+  --lib-numeric: #eb6834;
+  --lib-mathjs: #1baf7a;
+  --lib-stdlib: #eda100;
   --good: #0ca30c;
   --good-text: #006300;
   --critical: #d03b3b;
@@ -27,7 +28,7 @@
   :root:not([data-theme="light"]) {
     --plane: #0d0d0d; --surface: #1a1a19; --ink: #ffffff; --ink-2: #c3c2b7; --muted: #8f8d86;
     --grid: #2c2c2a; --axis: #45453f; --ring: rgba(255, 255, 255, 0.10);
-    --env-bun: #3987e5; --env-node: #d95926; --env-browser: #199e70;
+    --lib-numeric2: #3987e5; --lib-numeric: #d95926; --lib-mathjs: #199e70; --lib-stdlib: #c98500;
     --good-text: #0ca30c; --wash: rgba(57, 135, 229, 0.14);
     color-scheme: dark;
   }
@@ -35,7 +36,7 @@
 :root[data-theme="dark"] {
   --plane: #0d0d0d; --surface: #1a1a19; --ink: #ffffff; --ink-2: #c3c2b7; --muted: #8f8d86;
   --grid: #2c2c2a; --axis: #45453f; --ring: rgba(255, 255, 255, 0.10);
-  --env-bun: #3987e5; --env-node: #d95926; --env-browser: #199e70;
+  --lib-numeric2: #3987e5; --lib-numeric: #d95926; --lib-mathjs: #199e70; --lib-stdlib: #c98500;
   --good-text: #0ca30c; --wash: rgba(57, 135, 229, 0.14);
   color-scheme: dark;
 }
@@ -93,7 +94,17 @@ header { display: flex; flex-direction: column; gap: 10px; }
 .seg button[aria-pressed="true"] { background: var(--ink); color: var(--surface); }
 .toggles { display: inline-flex; flex-wrap: wrap; gap: 12px; font-size: 0.85rem; }
 .toggles label { display: inline-flex; align-items: center; gap: 6px; cursor: pointer; }
-button:focus-visible, .row-hit:focus-visible, input:focus-visible, summary:focus-visible { outline: 2px solid var(--env-bun); outline-offset: 2px; }
+button:focus-visible, .row-hit:focus-visible, input:focus-visible, select:focus-visible, summary:focus-visible { outline: 2px solid var(--lib-numeric2); outline-offset: 2px; }
+.select { font: 500 0.85rem/1 var(--font-sans); color: var(--ink); background: var(--surface); border: 1px solid var(--ring); border-radius: 8px; padding: 8px 10px; }
+.control-label { display: inline-flex; align-items: center; gap: 8px; font-size: 0.85rem; color: var(--ink-2); }
+.env.selected { border-color: var(--ink); }
+.env button.env-pick { all: unset; cursor: pointer; display: flex; flex-direction: column; gap: 8px; }
+.vs { display: grid; grid-template-columns: auto 1fr auto; gap: 4px 10px; align-items: baseline; font-size: 0.88rem; }
+.vs .fig { font-family: var(--font-mono); font-weight: 500; font-variant-numeric: tabular-nums; text-align: right; }
+.vs .cnt { color: var(--muted); font-size: 0.78rem; }
+.shape { flex: none; }
+.results td .rel { color: var(--muted); font-size: 0.78rem; margin-left: 6px; }
+.results td.err { color: var(--critical); font-family: var(--font-sans); }
 
 .btn {
   font: 500 0.88rem/1 var(--font-sans); padding: 9px 14px; border-radius: 7px; cursor: pointer;
@@ -134,7 +145,7 @@ button:focus-visible, .row-hit:focus-visible, input:focus-visible, summary:focus
 .run { display: flex; flex-wrap: wrap; gap: 10px 14px; align-items: center; }
 .progress { flex: 1 1 240px; min-width: 0; display: flex; flex-direction: column; gap: 4px; font-size: 0.82rem; color: var(--ink-2); }
 .bar { height: 4px; background: var(--grid); border-radius: 2px; overflow: hidden; }
-.bar > div { height: 100%; width: 0; background: var(--env-browser); transition: width 0.2s; }
+.bar > div { height: 100%; width: 0; background: var(--lib-numeric2); transition: width 0.2s; }
 @media (prefers-reduced-motion: reduce) { .bar > div { transition: none; } }
 
 /* Table */
@@ -161,9 +172,9 @@ footer { color: var(--muted); font-size: 0.82rem; }
 
 <main>
   <header>
-    <span class="eyebrow">numeric.js 1.2.6 → numeric-2</span>
+    <span class="eyebrow">numeric-2 · numeric.js · math.js · stdlib</span>
     <h1>numeric-2 Benchmarks</h1>
-    <p class="lede">How the TypeScript port compares with the original numeric.js, calling each library's public API on identical inputs. Results come from server runs on Bun and Node, and from this browser if you run the suite here.</p>
+    <p class="lede">How the TypeScript port compares with the original numeric.js and with two established JavaScript libraries, math.js and stdlib, calling each library's public API on identical inputs. Results come from server runs on Bun and Node, and from this browser if you run the suite here.</p>
   </header>
 
   <section class="envs" id="envs" aria-label="Environments"></section>
@@ -174,8 +185,8 @@ footer { color: var(--muted); font-size: 0.82rem; }
       <span class="muted" id="browser-libs"></span>
     </div>
     <div class="run">
-      <button class="btn" id="run-quick" type="button">Quick run (about 30 s)</button>
-      <button class="btn secondary" id="run-full" type="button">Full run (2–4 min)</button>
+      <button class="btn" id="run-quick" type="button">Quick run (about 1 min)</button>
+      <button class="btn secondary" id="run-full" type="button">Full run (5–8 min)</button>
       <button class="btn secondary" id="copy-json" type="button" hidden>Copy results as JSON</button>
       <div class="progress" id="progress" hidden>
         <span id="progress-text">Starting…</span>
@@ -185,17 +196,28 @@ footer { color: var(--muted); font-size: 0.82rem; }
   </section>
 
   <div class="controls" role="group" aria-label="Filters">
+    <div class="seg" id="env" role="group" aria-label="Environment"></div>
     <div class="seg" id="metric" role="group" aria-label="Metric">
       <button type="button" data-metric="ratio" aria-pressed="true">Relative speed</button>
       <button type="button" data-metric="time" aria-pressed="false">Time per call</button>
     </div>
+    <label class="control-label" for="baseline">Relative to
+      <select class="select" id="baseline">
+        <option value="numeric">numeric.js</option>
+        <option value="numeric-2">numeric-2</option>
+        <option value="mathjs">math.js</option>
+        <option value="stdlib">stdlib</option>
+      </select>
+    </label>
+  </div>
+  <div class="controls" role="group" aria-label="Suites and libraries">
     <div class="seg" id="suites" role="group" aria-label="Suite"></div>
-    <div class="toggles" id="env-toggles" role="group" aria-label="Environments shown"></div>
+    <div class="toggles" id="lib-toggles" role="group" aria-label="Libraries shown"></div>
   </div>
 
   <section class="card" aria-labelledby="chart-title">
     <div class="card-head">
-      <h2 id="chart-title">Speed of numeric-2 relative to numeric.js</h2>
+      <h2 id="chart-title">Speed relative to numeric.js</h2>
       <div class="legend" id="legend"></div>
     </div>
     <div id="chart"></div>
@@ -204,7 +226,7 @@ footer { color: var(--muted); font-size: 0.82rem; }
 
   <section aria-labelledby="table-title" style="display:flex;flex-direction:column;gap:10px">
     <h2 id="table-title">All measurements</h2>
-    <p class="ink-2">Median time per call. Relative speed is numeric.js time divided by numeric-2 time, so numeric.js is 1×: 0.5× means numeric-2 takes twice as long, 2× means it takes half as long.</p>
+    <p class="ink-2" id="table-note">Median time per call in the selected environment. The small figure is relative speed against the chosen baseline: 0.5× takes twice as long as the baseline, 2× takes half as long.</p>
     <div class="table-wrap"><table class="results" id="table"></table></div>
   </section>
 
@@ -212,10 +234,12 @@ footer { color: var(--muted); font-size: 0.82rem; }
     <summary>How these numbers are produced</summary>
     <div class="method-body">
       <ul>
-        <li>Each case runs the same seeded random input through both libraries. Inputs are converted to each library's own types before timing (numeric-2 <code>Vector</code>/<code>Matrix</code>, numeric.js arrays or <code>numeric.t</code> for complex values). Wrapping the result is part of the timed call.</li>
+        <li>Each case runs the same seeded random input through every library that has the operation. Inputs are converted to each library's own types before timing: numeric-2 <code>Vector</code>/<code>Matrix</code>, numeric.js arrays (or <code>numeric.t</code> for complex values), math.js <code>DenseMatrix</code>, and stdlib <code>Float64Array</code> in row-major order. Producing a new result is part of the timed call; for stdlib's in-place BLAS routines that means allocating the output array.</li>
+        <li>math.js 15.2.0 is called through its documented functions; element-wise <code>exp</code> and <code>sqrt</code> use <code>math.map</code>, as math.js requires for matrices. stdlib is used through its standalone BLAS packages (<code>@stdlib/blas-base-*</code> 0.4.1), which run as plain JavaScript unless their optional native add-ons are compiled. stdlib publishes no general LU, solve, inverse, determinant or eigenvalue routines yet, so it is absent from those rows.</li>
+        <li>math.js <code>eigs</code> fails to converge on the 24×24 and 48×48 random non-symmetric matrices used here; those cells show the error instead of a time.</li>
         <li>The timer warms up each call, picks a batch size so one batch takes about 25 ms (10–15 ms in a quick run), then records 15 batches (7 in a quick run). The chart shows the median; whiskers and the tooltip show the 25th–75th percentile range.</li>
-        <li>Before timing, both outputs are compared. "Match" means they agree to a relative tolerance of 10<sup>−8</sup>; eigenvalues are compared as unordered sets; LU outputs use different packed layouts and are not compared.</li>
-        <li>Server runs use <code>bun run bench:bun</code> and <code>bun run bench:node</code>; numeric-2 runs from source on Bun and from a bundled build on Node. This page runs the browser bundle and loads numeric.js 1.2.6 from jsDelivr.</li>
+        <li>Before timing, every output is compared with numeric-2's, which the test suite cross-validates against NumPy. "Match" means agreement to a relative tolerance of 10<sup>−8</sup>; eigenvalues are compared as unordered sets; LU outputs use different packed layouts and are not compared.</li>
+        <li>Server runs use <code>bun run bench:bun</code> and <code>bun run bench:node</code>; numeric-2 runs from source on Bun and from a bundled build on Node. This page runs a browser bundle of numeric-2, math.js and stdlib, and loads numeric.js 1.2.6 from jsDelivr.</li>
         <li>numeric.js generates code with <code>new Function</code> while it loads. Pages whose Content Security Policy forbids <code>eval</code> cannot load it at all; numeric-2 has no such dependency. The browser card above reports which case applies here.</li>
         <li>Machines vary and so does noise: treat relative speeds within about ±15% of 1× as a tie.</li>
       </ul>

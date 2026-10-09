@@ -231,10 +231,13 @@ The oracle returns inputs and expected outputs so the TS side uses the oracle's 
 
 ## Benchmarks (`benchmarks/`)
 
-- `suites.ts` — Environment-agnostic suite comparing numeric.js and numeric-2 through their public APIs (element-wise, reductions, products, linear algebra, complex). Same code runs in Bun, Node and the browser; libraries are passed in. Times with `performance.now()` using calibrated batches (median + IQR) and checks that both libraries' outputs agree before timing.
-- `run.ts` — CLI runner. `bun run bench:bun` / `bun run bench:node` (Node runs a bundled build) write `benchmarks/results/{bun,node}.json`. Flags: `--quick`, `--filter <text>`, `--out <dir>`.
-- `web/` — Benchmark page: `page.html` (markup/CSS, no document skeleton, so it can be published as an Artifact as-is), `app.ts` (page logic, bundled with numeric-2 and the suites), `build.ts` (`bun run bench:web` → `web/dist/` with `bench.js`, `results.json`, `index.html`), `serve.ts` (`bun run bench:serve`). The page loads numeric.js 1.2.6 from jsDelivr and reports when a CSP that forbids `eval` stops it from loading.
-- **When adding a feature with a numeric.js counterpart, add a case to `buildCases()` in `suites.ts`**, then re-run both runtimes and rebuild the page.
+Compares numeric-2 with numeric.js 1.2.6, math.js and stdlib (standalone `@stdlib/blas-base-*` packages; stdlib has no published general LU/solve/inv/det/eig, so it only appears in BLAS-style cases). Report results as **relative speed** against a baseline library (e.g. "0.8× numeric.js"), never as a "speed-up".
+
+- `suites.ts` — Environment-agnostic suite: `buildCases()` defines each case's per-library inputs and calls (public APIs only; each library gets its own input types, prepared outside the timed region). Outputs are compared against numeric-2's before timing. Timing uses `performance.now()` with calibrated batches (median + IQR) and a per-measurement time budget.
+- `libs.ts` — Shared imports of numeric-2, math.js and the stdlib routines (numeric.js is loaded separately: npm on the server, jsDelivr in the browser).
+- `run.ts` — CLI runner. `bun run bench:bun` / `bun run bench:node` (Node runs a bundled build) write `benchmarks/results/{bun,node}.json`. Flags: `--quick`, `--filter <text>`, `--libs a,b`, `--out <dir>`.
+- `web/` — Benchmark page: `page.html` (markup/CSS, no document skeleton, so it can be published as an Artifact as-is), `app.ts` (page logic, bundled with numeric-2, math.js, stdlib and the suites), `build.ts` (`bun run bench:web` → `web/dist/` with `bench.js`, `results.json`, `index.html`), `serve.ts` (`bun run bench:serve`). The page reports when a CSP that forbids `eval` stops numeric.js from loading.
+- **When adding a feature that other libraries also offer, add a case to `buildCases()` in `suites.ts`**, then re-run both runtimes and rebuild the page.
 
 ## Building
 
