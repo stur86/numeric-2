@@ -100,7 +100,7 @@ bun run site:build    # API reference + bundles + benchmark report + front page 
 bun run site:serve    # preview build/site locally
 ```
 
-The website is rebuilt and published to GitHub Pages by `.github/workflows/pages.yml` on every push to `main`.
+The website is rebuilt and published to GitHub Pages by `.github/workflows/pages.yml` on every push to `main`. Benchmark results are not committed: CI measures them (re-running only when the library or the benchmark suite changes), and local runs write to the git-ignored `benchmarks/results/`.
 
 See [CLAUDE.md](CLAUDE.md) for a detailed tour of the code: project layout, the code-generation system, conventions and testing.
 

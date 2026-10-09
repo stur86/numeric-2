@@ -175,4 +175,6 @@ dist
 .DS_Store
 benchmarks/.build/
 benchmarks/web/dist/
+# Measured by CI (or locally); not committed until there is a reference machine
+benchmarks/results/
 build/
