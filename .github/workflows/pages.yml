@@ -1,8 +1,9 @@
-# Build the project website and publish it to the gh-pages branch.
+# Build the project website and publish it with GitHub Pages
+# (repository settings: Pages → Source: GitHub Actions).
 #
 # Each part is built by its own job and cached on a hash of its inputs, so a
 # merge that only touches the front page re-uses the docs, bundles and
-# benchmark results. The site job then assembles everything and pushes it.
+# benchmark results. The site job then assembles everything and deploys it.
 name: Website
 
 on:
@@ -11,11 +12,14 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write # push to gh-pages
+  contents: read
+  pages: write    # deploy to GitHub Pages
+  id-token: write # verify the deployment's origin
 
+# One deployment at a time; let a running deployment finish
 concurrency:
   group: website
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 env:
   BUN_VERSION: 1.4.2
@@ -99,7 +103,9 @@ jobs:
           path: ~/.bun/install/cache
           key: bun-${{ hashFiles('bun.lockb') }}
       - run: bun install --frozen-lockfile
-      # Results depend on the library and the benchmark suite, not on the report page
+      # Results are not committed: they are measured here and cached, and only
+      # re-measured when the library or the benchmark suite changes.
+      # (They depend on those, not on the report page.)
       - name: Cache benchmark results
         id: cache
         uses: actions/cache@v4
@@ -120,9 +126,12 @@ jobs:
           path: benchmarks/web/dist
 
   site:
-    name: Assemble and publish
+    name: Assemble and deploy
     needs: [docs, library, benchmarks]
     runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - uses: actions/checkout@v4
       - uses: oven-sh/setup-bun@v2
@@ -142,11 +151,9 @@ jobs:
           path: benchmarks/web/dist
       - name: Assemble site
         run: bun run site:build -- --assemble-only
-      - name: Publish to gh-pages
-        uses: peaceiris/actions-gh-pages@v4
+      - uses: actions/upload-pages-artifact@v3
         with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_branch: gh-pages
-          publish_dir: build/site
-          force_orphan: true
-          commit_message: "Deploy website from ${{ github.sha }}"
+          path: build/site
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
