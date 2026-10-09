@@ -1,4 +1,4 @@
-import { UnaryMethod } from "../core/utils";
+import { UnaryMethod, fastUnary } from "../core/utils";
 import type { Complex, Scalar } from "../complex";
 import { type TensorLike, toTensor } from "./wrap";
 
@@ -18,36 +18,46 @@ function reduceScalar(x: TensorLike, name: string): Scalar {
     return typeof r === "number" ? r : { re: r[0], im: r[1] } as Complex;
 }
 
+const same = (raw: any) => raw;
+const scalarOp = (name: string) => fastUnary<any>(name, same, same, (x) => reduceScalar(x, name));
+const realOp = (name: string, label: string) => fastUnary<any>(name, same, same, (x) => reduce(x, name, label));
+
+const OPS = {
+    sum: scalarOp("sum"), prod: scalarOp("prod"),
+    sup: realOp("max", "sup"), inf: realOp("min", "inf"),
+    any: realOp("any", "any"), all: realOp("all", "all"),
+};
+
 /** Sum of all elements. A Complex for complex tensors. */
 export function sum(x: number[] | number[][]): number;
 export function sum(x: TensorLike): Scalar;
 export function sum(x: TensorLike): Scalar {
-    return reduceScalar(x, "sum");
+    return OPS.sum(x);
 }
 
 /** Product of all elements. A Complex for complex tensors. */
 export function prod(x: number[] | number[][]): number;
 export function prod(x: TensorLike): Scalar;
 export function prod(x: TensorLike): Scalar {
-    return reduceScalar(x, "prod");
+    return OPS.prod(x);
 }
 
 /** Largest element (supremum). Real tensors only. */
 export function sup(x: TensorLike): number {
-    return reduce(x, "max", "sup");
+    return OPS.sup(x);
 }
 
 /** Smallest element (infimum). Real tensors only. */
 export function inf(x: TensorLike): number {
-    return reduce(x, "min", "inf");
+    return OPS.inf(x);
 }
 
 /** True if any element is truthy (non-zero). Real tensors only. */
 export function any(x: TensorLike): boolean {
-    return Boolean(reduce(x, "any"));
+    return Boolean(OPS.any(x));
 }
 
 /** True if all elements are truthy (non-zero). Real tensors only. */
 export function all(x: TensorLike): boolean {
-    return Boolean(reduce(x, "all"));
+    return Boolean(OPS.all(x));
 }

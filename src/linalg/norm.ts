@@ -1,5 +1,12 @@
-import { UnaryMethod } from "../core/utils";
+import { UnaryMethod, fastUnary } from "../core/utils";
 import { type TensorLike, toTensor } from "./wrap";
+
+const same = (raw: any) => raw;
+const normOp = (name: string) => fastUnary<number>(name, same, same, (x) => new UnaryMethod(toTensor(x), name).invoke());
+
+const OPS = {
+    norm2: normOp("norm2"), norm2squared: normOp("norm2squared"), norm1: normOp("norm1"), normInf: normOp("normInf"),
+};
 
 
 /**
@@ -9,7 +16,7 @@ import { type TensorLike, toTensor } from "./wrap";
  * @returns     The 2-norm of the tensor.
  */
 export function norm2(x: TensorLike): number {
-    return new UnaryMethod(toTensor(x), "norm2").invoke();
+    return OPS.norm2(x);
 }
 
 /**
@@ -19,7 +26,7 @@ export function norm2(x: TensorLike): number {
  * @returns     The squared 2-norm of the tensor.
  */
 export function norm2squared(x: TensorLike): number {
-    return new UnaryMethod(toTensor(x), "norm2squared").invoke();
+    return OPS.norm2squared(x);
 }
 
 /**
@@ -29,7 +36,7 @@ export function norm2squared(x: TensorLike): number {
  * @returns     The 1-norm of the tensor.
  */
 export function norm1(x: TensorLike): number {
-    return new UnaryMethod(toTensor(x), "norm1").invoke();
+    return OPS.norm1(x);
 }
 
 /**
@@ -39,5 +46,5 @@ export function norm1(x: TensorLike): number {
  * @returns     The infinity-norm of the tensor.
  */
 export function normInf(x: TensorLike): number {
-    return new UnaryMethod(toTensor(x), "normInf").invoke();
+    return OPS.normInf(x);
 }

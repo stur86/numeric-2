@@ -281,3 +281,102 @@ export class BinaryMethod {
         return gatherRows(rows, this.name, this.dtype);
     }
 }
+
+/*
+ * Fast paths for the common case: real Vector/Matrix operands (or raw real
+ * arrays) and real scalars. Kernels are resolved once, when the op is built,
+ * and called directly. Anything else (complex values, shape errors, missing
+ * kernels) falls back to the general dispatcher via `slow`, so behaviour and
+ * error messages are unchanged.
+ */
+
+const kernel = (name: string): Function | undefined => {
+    const k = NumericCore[name as keyof typeof NumericCore];
+    return typeof k === "function" ? k : undefined;
+};
+
+/** A real vector operand's data, or null if it is not one (complex, matrix, other). */
+function realVectorData(x: unknown): number[] | null {
+    if (x instanceof Vector) return x._im === null ? x._re : null;
+    if (Array.isArray(x) && x.length > 0 && typeof x[0] === "number") return x as number[];
+    return null;
+}
+
+/**
+ * Build a unary op (map or reducer) with a real fast path.
+ *
+ * @param name    Kernel name (`_re_v_${name}`).
+ * @param wrapV   Wraps a real vector result (e.g. into a Vector).
+ * @param wrapM   Wraps a real matrix result: rows for maps, the combined value for reducers.
+ * @param slow    General path for every other input.
+ */
+export function fastUnary<R>(
+    name: string,
+    wrapV: (raw: any) => R,
+    wrapM: (raw: any) => R,
+    slow: (x: any) => R,
+): (x: any) => R {
+    const k = kernel(`_re_v_${name}`);
+    if (k === undefined) return slow;
+    return (x: any): R => {
+        const v = realVectorData(x);
+        if (v !== null) return wrapV(k(v, v.length));
+        if (x instanceof Matrix && x._im === null) {
+            const re = x._re, m = re.length, n = x._shape[1];
+            const rows = Array(m);
+            for (let i = m - 1; i >= 0; i--) rows[i] = k(re[i], n);
+            return wrapM(gatherRows(rows, name, "re"));
+        }
+        return slow(x);
+    };
+}
+
+/**
+ * Build a binary op with a real fast path for vector/vector, vector/scalar,
+ * matrix/matrix and matrix/scalar operands (same shapes only).
+ */
+export function fastBinary<R>(
+    name: string,
+    wrapV: (raw: any) => R,
+    wrapM: (raw: any) => R,
+    slow: (x: any, y: any) => R,
+): (x: any, y: any) => R {
+    const VV = kernel(`_re_v_${name}VV`), VS = kernel(`_re_v_${name}VS`), SV = kernel(`_re_v_${name}SV`);
+    if (VV === undefined || VS === undefined || SV === undefined) return slow;
+    return (x: any, y: any): R => {
+        // Vectors
+        const xv = typeof x === "number" ? null : realVectorData(x);
+        if (xv !== null) {
+            if (typeof y === "number") return wrapV(VS(xv, y, xv.length));
+            const yv = realVectorData(y);
+            if (yv !== null && yv.length === xv.length) return wrapV(VV(xv, yv, xv.length));
+            return slow(x, y);
+        }
+        if (typeof x === "number") {
+            const yv = realVectorData(y);
+            if (yv !== null) return wrapV(SV(x, yv, yv.length));
+            if (y instanceof Matrix && y._im === null) {
+                const B = y._re, m = B.length, n = y._shape[1];
+                const rows = Array(m);
+                for (let i = m - 1; i >= 0; i--) rows[i] = SV(x, B[i], n);
+                return wrapM(rows);
+            }
+            return slow(x, y);
+        }
+        // Matrices
+        if (x instanceof Matrix && x._im === null) {
+            const A = x._re, m = A.length, n = x._shape[1];
+            const rows = Array(m);
+            if (typeof y === "number") {
+                for (let i = m - 1; i >= 0; i--) rows[i] = VS(A[i], y, n);
+                return wrapM(rows);
+            }
+            if (y instanceof Matrix && y._im === null && y._shape[0] === m && y._shape[1] === n) {
+                const B = y._re;
+                for (let i = m - 1; i >= 0; i--) rows[i] = VV(A[i], B[i], n);
+                return wrapM(rows);
+            }
+        }
+        return slow(x, y);
+    };
+}

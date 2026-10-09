@@ -1,4 +1,6 @@
-import { UnaryMethod } from "../core/utils";
+import { UnaryMethod, fastUnary } from "../core/utils";
+import Vector from "../vector";
+import Matrix from "../matrix";
 import { type TensorLike, type TensorOf, type MatrixLike, toTensor, wrapTensor } from "./wrap";
 
 /*
@@ -18,77 +20,96 @@ function predicate(x: TensorLike, name: string): any {
     return new UnaryMethod(toTensor(x), name).invoke();
 }
 
+const toVector = (raw: number[]) => new Vector(raw);
+const toMatrix = (raw: number[][]) => new Matrix(raw);
+const same = (raw: any) => raw;
+const mapOp = (name: string) => fastUnary<any>(name, toVector, toMatrix, (x) => map(x, name));
+const predicateOp = (name: string) => fastUnary<any>(name, same, same, (x) => predicate(x, name));
+
+const OPS = {
+    sqrt: mapOp("sqrt"), exp: mapOp("exp"), log: mapOp("log"), sin: mapOp("sin"), cos: mapOp("cos"),
+    tan: mapOp("tan"), asin: mapOp("asin"), acos: mapOp("acos"), atan: mapOp("atan"), neg: mapOp("neg"),
+    ceil: mapOp("ceil"), floor: mapOp("floor"), round: mapOp("round"), conj: mapOp("conj"),
+    isNaN: predicateOp("isNaN"), isFinite: predicateOp("isFinite"),
+    // Complex abs returns [|x|, zeros]: keep only the real part
+    abs: fastUnary<any>("abs", toVector, toMatrix, (x) => {
+        const method = new UnaryMethod(toTensor(x), "abs");
+        const raw = method.invoke();
+        return wrapTensor(method.dtype === "cx" ? raw[0] : raw, false, method.optype === "m");
+    }),
+};
+
 /** `boolean[][]` for matrix-like T, otherwise `boolean[]`. */
 export type BoolOf<T> = T extends MatrixLike ? boolean[][] : boolean[];
 
 /** Element-wise square root. */
 export function sqrt<T extends TensorLike>(x: T): TensorOf<T> {
-    return map(x, "sqrt");
+    return OPS.sqrt(x);
 }
 
 /** Element-wise natural exponential. */
 export function exp<T extends TensorLike>(x: T): TensorOf<T> {
-    return map(x, "exp");
+    return OPS.exp(x);
 }
 
 /** Element-wise natural logarithm. */
 export function log<T extends TensorLike>(x: T): TensorOf<T> {
-    return map(x, "log");
+    return OPS.log(x);
 }
 
 /** Element-wise sine. */
 export function sin<T extends TensorLike>(x: T): TensorOf<T> {
-    return map(x, "sin");
+    return OPS.sin(x);
 }
 
 /** Element-wise cosine. */
 export function cos<T extends TensorLike>(x: T): TensorOf<T> {
-    return map(x, "cos");
+    return OPS.cos(x);
 }
 
 /** Element-wise tangent. */
 export function tan<T extends TensorLike>(x: T): TensorOf<T> {
-    return map(x, "tan");
+    return OPS.tan(x);
 }
 
 /** Element-wise arcsine. */
 export function asin<T extends TensorLike>(x: T): TensorOf<T> {
-    return map(x, "asin");
+    return OPS.asin(x);
 }
 
 /** Element-wise arccosine. */
 export function acos<T extends TensorLike>(x: T): TensorOf<T> {
-    return map(x, "acos");
+    return OPS.acos(x);
 }
 
 /** Element-wise arctangent. */
 export function atan<T extends TensorLike>(x: T): TensorOf<T> {
-    return map(x, "atan");
+    return OPS.atan(x);
 }
 
 /** Element-wise negation. */
 export function neg<T extends TensorLike>(x: T): TensorOf<T> {
-    return map(x, "neg");
+    return OPS.neg(x);
 }
 
 /** Element-wise ceiling. */
 export function ceil<T extends TensorLike>(x: T): TensorOf<T> {
-    return map(x, "ceil");
+    return OPS.ceil(x);
 }
 
 /** Element-wise floor. */
 export function floor<T extends TensorLike>(x: T): TensorOf<T> {
-    return map(x, "floor");
+    return OPS.floor(x);
 }
 
 /** Element-wise rounding to the nearest integer. */
 export function round<T extends TensorLike>(x: T): TensorOf<T> {
-    return map(x, "round");
+    return OPS.round(x);
 }
 
 /** Element-wise complex conjugate (a copy, for real tensors). */
 export function conj<T extends TensorLike>(x: T): TensorOf<T> {
-    return map(x, "conj");
+    return OPS.conj(x);
 }
 
 /**
@@ -96,19 +117,15 @@ export function conj<T extends TensorLike>(x: T): TensorOf<T> {
  * Always returns a real tensor.
  */
 export function abs<T extends TensorLike>(x: T): TensorOf<T> {
-    const t = toTensor(x);
-    const method = new UnaryMethod(t, "abs");
-    const raw = method.invoke();
-    // The complex kernel returns [|x|, zeros]: keep only the real part
-    return wrapTensor(method.dtype === "cx" ? raw[0] : raw, false, method.optype === "m") as TensorOf<T>;
+    return OPS.abs(x);
 }
 
 /** Element-wise test for NaN. */
 export function isNaN<T extends TensorLike>(x: T): BoolOf<T> {
-    return predicate(x, "isNaN");
+    return OPS.isNaN(x);
 }
 
 /** Element-wise test for finite values. */
 export function isFinite<T extends TensorLike>(x: T): BoolOf<T> {
-    return predicate(x, "isFinite");
+    return OPS.isFinite(x);
 }

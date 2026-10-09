@@ -1,6 +1,6 @@
-import { BinaryMethod } from "../core/utils";
-import type Vector from "../vector";
-import type Matrix from "../matrix";
+import { BinaryMethod, fastBinary } from "../core/utils";
+import Vector from "../vector";
+import Matrix from "../matrix";
 import { type TensorLike, type MatrixLike, toTensor, wrapTensor } from "./wrap";
 import { type Complex, type Scalar, isComplex } from "../complex";
 
@@ -28,6 +28,22 @@ function compare(x: Operand, y: Operand, name: string): any {
     return new BinaryMethod(asTensor(x), asTensor(y), name).invoke();
 }
 
+const toVector = (raw: number[]) => new Vector(raw);
+const toMatrix = (raw: number[][]) => new Matrix(raw);
+const same = (raw: any) => raw;
+
+/** An arithmetic op: real fast path, general dispatcher otherwise. */
+const arithOp = (name: string) => fastBinary<any>(name, toVector, toMatrix, (x, y) => arith(x, y, name));
+/** A comparison op: real fast path, general dispatcher otherwise. */
+const compareOp = (name: string) => fastBinary<any>(name, same, same, (x, y) => compare(x, y, name));
+
+const OPS = {
+    add: arithOp("add"), sub: arithOp("sub"), mul: arithOp("mul"), div: arithOp("div"),
+    mod: arithOp("mod"), pow: arithOp("pow"), atan2: arithOp("atan2"), max: arithOp("max"), min: arithOp("min"),
+    eq: compareOp("eq"), neq: compareOp("neq"), lt: compareOp("lt"), gt: compareOp("gt"),
+    leq: compareOp("leq"), geq: compareOp("geq"),
+};
+
 /**
  * Element-wise addition of two tensors of the same shape, or a tensor and a scalar.
  *
@@ -36,7 +52,7 @@ function compare(x: Operand, y: Operand, name: string): any {
  * @returns     The element-wise sum.
  */
 export function add<X extends Operand, Y extends Operand>(x: X, y: Y): ArithResult<X, Y> {
-    return arith(x, y, "add");
+    return OPS.add(x, y);
 }
 
 /**
@@ -47,7 +63,7 @@ export function add<X extends Operand, Y extends Operand>(x: X, y: Y): ArithResu
  * @returns     The element-wise difference.
  */
 export function sub<X extends Operand, Y extends Operand>(x: X, y: Y): ArithResult<X, Y> {
-    return arith(x, y, "sub");
+    return OPS.sub(x, y);
 }
 
 /**
@@ -58,7 +74,7 @@ export function sub<X extends Operand, Y extends Operand>(x: X, y: Y): ArithResu
  * @returns     The element-wise product.
  */
 export function mul<X extends Operand, Y extends Operand>(x: X, y: Y): ArithResult<X, Y> {
-    return arith(x, y, "mul");
+    return OPS.mul(x, y);
 }
 
 /**
@@ -69,7 +85,7 @@ export function mul<X extends Operand, Y extends Operand>(x: X, y: Y): ArithResu
  * @returns     The element-wise quotient.
  */
 export function div<X extends Operand, Y extends Operand>(x: X, y: Y): ArithResult<X, Y> {
-    return arith(x, y, "div");
+    return OPS.div(x, y);
 }
 
 /**
@@ -80,7 +96,7 @@ export function div<X extends Operand, Y extends Operand>(x: X, y: Y): ArithResu
  * @returns     The element-wise remainder.
  */
 export function mod<X extends Operand, Y extends Operand>(x: X, y: Y): ArithResult<X, Y> {
-    return arith(x, y, "mod");
+    return OPS.mod(x, y);
 }
 
 /**
@@ -91,7 +107,7 @@ export function mod<X extends Operand, Y extends Operand>(x: X, y: Y): ArithResu
  * @returns     The element-wise power.
  */
 export function pow<X extends Operand, Y extends Operand>(x: X, y: Y): ArithResult<X, Y> {
-    return arith(x, y, "pow");
+    return OPS.pow(x, y);
 }
 
 /**
@@ -102,7 +118,7 @@ export function pow<X extends Operand, Y extends Operand>(x: X, y: Y): ArithResu
  * @returns     The element-wise atan2.
  */
 export function atan2<X extends Operand, Y extends Operand>(x: X, y: Y): ArithResult<X, Y> {
-    return arith(x, y, "atan2");
+    return OPS.atan2(x, y);
 }
 
 /**
@@ -113,7 +129,7 @@ export function atan2<X extends Operand, Y extends Operand>(x: X, y: Y): ArithRe
  * @returns     The element-wise maximum.
  */
 export function max<X extends Operand, Y extends Operand>(x: X, y: Y): ArithResult<X, Y> {
-    return arith(x, y, "max");
+    return OPS.max(x, y);
 }
 
 /**
@@ -124,47 +140,47 @@ export function max<X extends Operand, Y extends Operand>(x: X, y: Y): ArithResu
  * @returns     The element-wise minimum.
  */
 export function min<X extends Operand, Y extends Operand>(x: X, y: Y): ArithResult<X, Y> {
-    return arith(x, y, "min");
+    return OPS.min(x, y);
 }
 
 /**
  * Element-wise equality test.
  */
 export function eq<X extends Operand, Y extends Operand>(x: X, y: Y): CompareResult<X, Y> {
-    return compare(x, y, "eq");
+    return OPS.eq(x, y);
 }
 
 /**
  * Element-wise inequality test.
  */
 export function neq<X extends Operand, Y extends Operand>(x: X, y: Y): CompareResult<X, Y> {
-    return compare(x, y, "neq");
+    return OPS.neq(x, y);
 }
 
 /**
  * Element-wise less-than test.
  */
 export function lt<X extends Operand, Y extends Operand>(x: X, y: Y): CompareResult<X, Y> {
-    return compare(x, y, "lt");
+    return OPS.lt(x, y);
 }
 
 /**
  * Element-wise greater-than test.
  */
 export function gt<X extends Operand, Y extends Operand>(x: X, y: Y): CompareResult<X, Y> {
-    return compare(x, y, "gt");
+    return OPS.gt(x, y);
 }
 
 /**
  * Element-wise less-than-or-equal test.
  */
 export function leq<X extends Operand, Y extends Operand>(x: X, y: Y): CompareResult<X, Y> {
-    return compare(x, y, "leq");
+    return OPS.leq(x, y);
 }
 
 /**
  * Element-wise greater-than-or-equal test.
  */
 export function geq<X extends Operand, Y extends Operand>(x: X, y: Y): CompareResult<X, Y> {
-    return compare(x, y, "geq");
+    return OPS.geq(x, y);
 }
