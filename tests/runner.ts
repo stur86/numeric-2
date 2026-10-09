@@ -25,6 +25,7 @@ export type OracleRequest =
     | { op: "svd"; seed: number; m: number; n: number; rank?: number }
     | { op: "fft" | "ifft"; seed: number; n: number; real?: boolean }
     | { op: "lp"; seed: number; n: number; m: number; meq?: number }
+    | { op: "spline"; seed: number; n: number; bc: "natural" | "periodic" | "clamped" | "mixed"; dim?: number }
     | { op: "qp"; seed: number; n: number; q: number; meq?: number }
     | { op: "cx_dot"; variant: "MV" | "VM" | "MM"; seed: number; m: number; n: number; p?: number; real_x?: boolean; real_y?: boolean }
     | { op: "dot"; variant: string; seed: number; n?: number; m?: number; p?: number }

@@ -536,6 +536,23 @@ export function buildCases(libs: Libs): Case[] {
             check: (a, b) => close(a, b, 1e-6),
         },
 
+        // Interpolation (math.js and stdlib have no counterparts)
+        {
+            suite: "Interpolation", name: "spline(x, y).at(1000 pts)", sizes: [10, 100, 1000], sizeLabel: (n) => `${n} knots`,
+            setup: (n, rng) => {
+                const x: number[] = [];
+                let acc = 0;
+                for (let i = 0; i < n; i++) x.push((acc += 0.2 + rng()));
+                const y = randVec(n, rng);
+                const ts = Array.from({ length: 1000 }, (_, i) => x[0] + ((x[n - 1] - x[0]) * i) / 999);
+                return { "numeric-2": [x, y, ts], numeric: [x, y, ts] };
+            },
+            run: {
+                "numeric-2": ([x, y, ts]) => libs.numeric2.interpolate.spline(x, y).at(ts),
+                numeric: ([x, y, ts], nm) => nm.spline(x, y).at(ts),
+            },
+        },
+
         // Complex
         {
             suite: "Complex", name: "mul x * y", sizes: VEC_SIZES, sizeLabel: vecLabel,

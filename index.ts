@@ -4,6 +4,7 @@ import { complex, isComplex } from "./src/complex";
 import type { Complex, Scalar } from "./src/complex";
 import * as linalg from "./src/linalg";
 import * as optimize from "./src/optimize";
+import * as interpolate from "./src/interpolate";
 import { dim, rep, linspace, random, identity, diag, getDiag, clone, transpose, negtranspose, same, tensor, getBlock, getBlock1D } from "./src/utils";
 
 export {
@@ -11,6 +12,7 @@ export {
     Matrix,
     linalg,
     optimize,
+    interpolate,
     complex, isComplex,
     dim, rep, linspace, random, identity, diag, getDiag, clone, transpose, negtranspose, same, tensor, getBlock, getBlock1D,
 };

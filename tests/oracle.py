@@ -446,6 +446,39 @@ def handle_qp(req: dict) -> dict:
             "expected": {"x": res.x.tolist(), "fun": float(res.fun)}}
 
 
+def handle_spline(req: dict) -> dict:
+    """scipy CubicSpline for random knots; bc is "natural", "periodic", "clamped" or "mixed"."""
+    from scipy.interpolate import CubicSpline
+    rng = np.random.default_rng(req["seed"])
+    n, dim, bc = req["n"], req.get("dim"), req["bc"]
+    x = np.cumsum(rng.uniform(0.2, 1.5, n)) - 1.0
+    y = rng.standard_normal((n, dim)) if dim else rng.standard_normal(n)
+    left = right = None
+    if bc == "periodic":
+        y[-1] = y[0]
+        bc_type = "periodic"
+    elif bc == "natural":
+        bc_type = "natural"
+    else:
+        left = rng.standard_normal(dim) if dim else float(rng.standard_normal())
+        right = rng.standard_normal(dim) if dim else float(rng.standard_normal())
+        if bc == "mixed":
+            right = None
+            bc_type = ((1, left), (2, np.zeros(dim) if dim else 0.0))
+        else:
+            bc_type = ((1, left), (1, right))
+    cs = CubicSpline(x, y, bc_type=bc_type)
+    ts = np.linspace(x[0] - 0.5, x[-1] + 0.5, 41)
+    tolist = lambda v: v.tolist() if hasattr(v, "tolist") else v
+    out = {
+        "inputs": {"x": x.tolist(), "y": y.tolist(), "ts": ts.tolist(), "left": tolist(left), "right": tolist(right)},
+        "expected": {"at": cs(ts).tolist(), "diff": cs(ts, 1).tolist(), "diff2": cs(ts, 2).tolist()},
+    }
+    if not dim:
+        out["expected"]["roots"] = cs.roots(extrapolate=False).tolist()
+    return out
+
+
 def handle_cx_dot_VV(req: dict) -> dict:
     rng = np.random.default_rng(req["seed"])
     n = req["n"]
@@ -534,6 +567,8 @@ def process(req: dict) -> dict:
         return handle_lp(req)
     elif op == "qp":
         return handle_qp(req)
+    elif op == "spline":
+        return handle_spline(req)
     elif op == "getBlock":
         return handle_getBlock(req)
     elif op == "getBlock1D":

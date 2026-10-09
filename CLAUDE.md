@@ -8,7 +8,7 @@ The original numeric.js is at `../numeric` relative to this project. Its documen
 
 ## Project Structure
 
-- `index.ts` — Public entry point. Exports `Vector`, `Matrix`, `linalg`, `optimize`, `complex`/`isComplex` (+ `Complex`/`Scalar` types), and utility functions.
+- `index.ts` — Public entry point. Exports `Vector`, `Matrix`, `linalg`, `optimize`, `interpolate`, `complex`/`isComplex` (+ `Complex`/`Scalar` types), and utility functions.
 - `src/complex.ts` — `Complex = {re, im}` scalar type, `Scalar = number | Complex`, `complex()`, `isComplex()`.
 - `src/base.ts` — `TensorBase` class: base for all tensors, stores `_re`, `_im`, `_shape`.
 - `src/vector.ts` — `Vector` class (1D tensor).
@@ -26,6 +26,8 @@ The original numeric.js is at `../numeric` relative to this project. Its documen
   - `core.ts` — `NumericCore` static class aggregating all core functions (real + complex).
   - `utils.ts` — `UnaryMethod` and `BinaryMethod` dispatchers that resolve tensor type/dtype to core functions.
   - `dot.ts` — Low-level dot product implementations (dotVV, dotMV, dotVM, dotMMsmall, dotMMbig).
+- `src/interpolate/` — Public interpolation API (`interpolate` namespace).
+  - `spline.ts` — `spline(x, y, boundary)` → generic `Spline<"scalar" | "vector">` with `at`, `diff`, `roots`. Stored as piecewise cubic Hermite segments (separate left/right values and slopes per knot, so `diff()` is exact). Boundary: `"natural"` (default), `"periodic"`, or `{left, right}` end slopes. Slopes come from an O(n) tridiagonal (Thomas) solve; periodic uses Sherman–Morrison. Differences from numeric.js: periodic splines wrap outside the knots, and `roots()` correctly finds two roots inside one segment (numeric.js compared local-coordinate turning points with absolute x).
 - `src/optimize/` — Public optimization API (`optimize` namespace). Objective/gradient callbacks receive plain `number[]`.
   - `uncmin.ts` — `gradient` (central differences, adaptive step; retries counted per coordinate, unlike numeric.js which fails above ~20 variables) and `uncmin` (BFGS + backtracking line search, options object).
   - `lp.ts` — `solveLP(c, A, b, {Aeq, beq, tol, maxit})`: interior-point LP (minimize c·x s.t. Ax ≤ b, Aeq x = beq), and `echelonize`.
@@ -229,7 +231,7 @@ A cross-language validation framework that compares numeric-2 results against Nu
 - `tests/oracle.py` — Python script that accepts NDJSON on stdin, generates seeded random data with NumPy, computes reference results, and outputs NDJSON responses with both inputs and expected outputs.
 - `tests/runner.ts` — Bun helper that spawns `uv run python tests/oracle.py`, sends requests, and parses responses. Provides `oracle()`, `assertClose()`, `assertClose2D()`, `assertScalarClose()`.
 - `tests/pyproject.toml` — uv project config (numpy and scipy; scipy provides LP/QP references via `linprog` and SLSQP). Run `cd tests && uv sync` to install.
-- Test files: `unary.test.ts`, `binary.test.ts`, `reducers.test.ts`, `dot.test.ts`, `linalg.test.ts`, `complex.test.ts`, `eig.test.ts`, `utilities.test.ts`, `complex-dispatch.test.ts`, `elementwise.test.ts` (public API on vectors and matrices), `cx-linalg.test.ts`, `fft.test.ts`, `optimize.test.ts` (LP vs linprog, QP vs SLSQP, uncmin on known minimizers), `svd.test.ts` (singular values vs NumPy, plus reconstruction and orthonormality, since singular vectors are sign-ambiguous)
+- Test files: `unary.test.ts`, `binary.test.ts`, `reducers.test.ts`, `dot.test.ts`, `linalg.test.ts`, `complex.test.ts`, `eig.test.ts`, `utilities.test.ts`, `complex-dispatch.test.ts`, `elementwise.test.ts` (public API on vectors and matrices), `cx-linalg.test.ts`, `fft.test.ts`, `spline.test.ts` (vs scipy CubicSpline: values, derivatives, roots), `optimize.test.ts` (LP vs linprog, QP vs SLSQP, uncmin on known minimizers), `svd.test.ts` (singular values vs NumPy, plus reconstruction and orthonormality, since singular vectors are sign-ambiguous)
 - `cx-linalg.test.ts` covers complex solve/LU/inv/det/dot and complex element-wise ops (incl. complex scalar operands).
 - Element-wise oracle ops accept `"shape": [m, n]` instead of `"n"` to produce matrix inputs; `cx_*` binary ops accept `real_x`/`real_y` to make one operand purely real. Oracle exceptions come back as `{"error": ...}` and the runner raises them as test failures.
 
