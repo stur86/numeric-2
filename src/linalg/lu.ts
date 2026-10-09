@@ -1,7 +1,16 @@
 import { clone } from "../utils";
+import Vector from "../vector";
+import Matrix from "../matrix";
 import { type MatrixLike, type VectorLike, toRawMatrix, toRawVector, assertSquare } from "./wrap";
 
 export type LUPResult = {
+    /** L (strictly below the diagonal, implicit unit diagonal) and U packed together. */
+    LU: Matrix;
+    /** Pivot rows: row k was swapped with row P[k] at step k. */
+    P: number[];
+};
+
+type RawLUPResult = {
     LU: number[][];
     P: number[];
 };
@@ -18,6 +27,11 @@ export type LUPResult = {
  * @returns     {LU, P}
  */
 export function LU(A: MatrixLike, fast: boolean = false): LUPResult {
+    const { LU: a, P } = rawLU(A, fast);
+    return { LU: new Matrix(a), P };
+}
+
+function rawLU(A: MatrixLike, fast: boolean): RawLUPResult {
     const rawA = toRawMatrix(A, "LU");
     assertSquare(rawA, "LU");
     const a = fast ? rawA : clone(rawA) as number[][];
@@ -76,7 +90,11 @@ export function LU(A: MatrixLike, fast: boolean = false): LUPResult {
  * @param b     The right-hand side vector.
  * @returns     The solution vector x.
  */
-export function LUsolve(lup: LUPResult, b: VectorLike): number[] {
+export function LUsolve(lup: LUPResult, b: VectorLike): Vector {
+    return new Vector(rawLUsolve({ LU: lup.LU.real as number[][], P: lup.P }, b));
+}
+
+function rawLUsolve(lup: RawLUPResult, b: VectorLike): number[] {
     const { LU: a, P } = lup;
     const n = a.length;
     const rawB = toRawVector(b, "LUsolve");
@@ -125,6 +143,6 @@ export function LUsolve(lup: LUPResult, b: VectorLike): number[] {
  * @param b     The right-hand side vector.
  * @returns     The solution vector x.
  */
-export function solve(A: MatrixLike, b: VectorLike): number[] {
-    return LUsolve(LU(A), b);
+export function solve(A: MatrixLike, b: VectorLike): Vector {
+    return new Vector(rawLUsolve(rawLU(A, false), b));
 }

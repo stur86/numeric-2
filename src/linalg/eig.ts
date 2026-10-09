@@ -8,7 +8,7 @@ import { dotMMsmall } from "../core/dot";
 import Vector from "../vector";
 import Matrix from "../matrix";
 import { type MatrixLike, toRawMatrix, toRawCxMatrix } from "./wrap";
-import { toUpperHessenberg, QRFrancis } from "./house";
+import { toUpperHessenbergRaw, QRFrancisRaw } from "./house";
 import { cxToUpperHessenberg, cxQR } from "./cxhouse";
 import {
     type CxMatrix,
@@ -88,8 +88,8 @@ function eigReal(rawA: number[][], maxiter?: number): EigResult {
     const n = rawA.length;
 
     // Phase 1: Schur decomposition (real)
-    const QH = toUpperHessenberg(rawA);
-    const QB = QRFrancis(QH.H, maxiter);
+    const QH = toUpperHessenbergRaw(rawA);
+    const QB = QRFrancisRaw(QH.H, maxiter);
 
     const H = dotMMsmall(QB.Q, dotMMsmall(QH.H, transpose(QB.Q)));
     const Q: CxMatrix = [dotMMsmall(QB.Q, QH.Q), null];

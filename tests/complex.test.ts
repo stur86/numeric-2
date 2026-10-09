@@ -36,8 +36,8 @@ describe("complex unary maps", () => {
             for (const seed of SEEDS) {
                 test(`${tsOp} n=${n} seed=${seed}`, async () => {
                     const resp = await oracle({ op: name, seed, n });
-                    const input = resp.inputs.x as { re: number[]; im: number[] };
-                    const expected = resp.expected as { re: number[]; im: number[] };
+                    const input = resp.inputs.x as unknown as { re: number[]; im: number[] };
+                    const expected = resp.expected as unknown as { re: number[]; im: number[] };
 
                     const [resRe, resIm] = fn(input.re, input.im, n);
                     assertClose(resRe, expected.re, 1e-10, `${tsOp} re `);
@@ -70,20 +70,20 @@ describe("complex binary ops", () => {
                 for (const seed of SEEDS) {
                     test(`${tsOp} ${variant} n=${n} seed=${seed}`, async () => {
                         const resp = await oracle({ op: name, variant, seed, n });
-                        const expected = resp.expected as { re: number[]; im: number[] };
+                        const expected = resp.expected as unknown as { re: number[]; im: number[] };
                         let resRe: number[], resIm: number[];
 
                         if (variant === "VV") {
-                            const x = resp.inputs.x as { re: number[]; im: number[] };
-                            const y = resp.inputs.y as { re: number[]; im: number[] };
+                            const x = resp.inputs.x as unknown as { re: number[]; im: number[] };
+                            const y = resp.inputs.y as unknown as { re: number[]; im: number[] };
                             [resRe, resIm] = fnVV(x.re, x.im, y.re, y.im, n);
                         } else if (variant === "VS") {
-                            const x = resp.inputs.x as { re: number[]; im: number[] };
-                            const y = resp.inputs.y as { re: number; im: number };
+                            const x = resp.inputs.x as unknown as { re: number[]; im: number[] };
+                            const y = resp.inputs.y as unknown as { re: number; im: number };
                             [resRe, resIm] = fnVS(x.re, x.im, y.re, y.im, n);
                         } else {
-                            const x = resp.inputs.x as { re: number; im: number };
-                            const y = resp.inputs.y as { re: number[]; im: number[] };
+                            const x = resp.inputs.x as unknown as { re: number; im: number };
+                            const y = resp.inputs.y as unknown as { re: number[]; im: number[] };
                             [resRe, resIm] = fnSV(x.re, x.im, y.re, y.im, n);
                         }
 
@@ -110,7 +110,7 @@ describe("complex reducers", () => {
             for (const seed of SEEDS) {
                 test(`${tsOp} n=${n} seed=${seed}`, async () => {
                     const resp = await oracle({ op: name, seed, n });
-                    const input = resp.inputs.x as { re: number[]; im: number[] };
+                    const input = resp.inputs.x as unknown as { re: number[]; im: number[] };
                     const expected = resp.expected as number;
 
                     const result = fn(input.re, input.im, n);

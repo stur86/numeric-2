@@ -7,75 +7,75 @@ import { add, sub, mul, div, mod, pow, atan2, max, min, eq, neq, lt, gt, leq, ge
 test("add VV", () => {
     const a = new Vector([1, 2, 3]);
     const b = new Vector([4, 5, 6]);
-    expect(add(a, b)).toEqual([5, 7, 9]);
+    expect(add(a, b).real).toEqual([5, 7, 9]);
 });
 
 test("sub VV", () => {
     const a = new Vector([10, 20, 30]);
     const b = new Vector([1, 2, 3]);
-    expect(sub(a, b)).toEqual([9, 18, 27]);
+    expect(sub(a, b).real).toEqual([9, 18, 27]);
 });
 
 test("mul VV", () => {
     const a = new Vector([2, 3, 4]);
     const b = new Vector([5, 6, 7]);
-    expect(mul(a, b)).toEqual([10, 18, 28]);
+    expect(mul(a, b).real).toEqual([10, 18, 28]);
 });
 
 test("div VV", () => {
     const a = new Vector([10, 20, 30]);
     const b = new Vector([2, 4, 5]);
-    expect(div(a, b)).toEqual([5, 5, 6]);
+    expect(div(a, b).real).toEqual([5, 5, 6]);
 });
 
 test("mod VV", () => {
     const a = new Vector([10, 7, 15]);
     const b = new Vector([3, 4, 6]);
-    expect(mod(a, b)).toEqual([1, 3, 3]);
+    expect(mod(a, b).real).toEqual([1, 3, 3]);
 });
 
 // Arithmetic operations - VS
 
 test("add VS", () => {
     const a = new Vector([1, 2, 3]);
-    expect(add(a, 10)).toEqual([11, 12, 13]);
+    expect(add(a, 10).real).toEqual([11, 12, 13]);
 });
 
 test("sub VS", () => {
     const a = new Vector([10, 20, 30]);
-    expect(sub(a, 5)).toEqual([5, 15, 25]);
+    expect(sub(a, 5).real).toEqual([5, 15, 25]);
 });
 
 test("mul VS", () => {
     const a = new Vector([1, 2, 3]);
-    expect(mul(a, 3)).toEqual([3, 6, 9]);
+    expect(mul(a, 3).real).toEqual([3, 6, 9]);
 });
 
 test("div VS", () => {
     const a = new Vector([10, 20, 30]);
-    expect(div(a, 10)).toEqual([1, 2, 3]);
+    expect(div(a, 10).real).toEqual([1, 2, 3]);
 });
 
 // Arithmetic operations - SV
 
 test("add SV", () => {
     const b = new Vector([1, 2, 3]);
-    expect(add(10, b)).toEqual([11, 12, 13]);
+    expect(add(10, b).real).toEqual([11, 12, 13]);
 });
 
 test("sub SV", () => {
     const b = new Vector([1, 2, 3]);
-    expect(sub(10, b)).toEqual([9, 8, 7]);
+    expect(sub(10, b).real).toEqual([9, 8, 7]);
 });
 
 test("mul SV", () => {
     const b = new Vector([1, 2, 3]);
-    expect(mul(3, b)).toEqual([3, 6, 9]);
+    expect(mul(3, b).real).toEqual([3, 6, 9]);
 });
 
 test("div SV", () => {
     const b = new Vector([2, 4, 5]);
-    expect(div(100, b)).toEqual([50, 25, 20]);
+    expect(div(100, b).real).toEqual([50, 25, 20]);
 });
 
 // Math operations
@@ -83,18 +83,18 @@ test("div SV", () => {
 test("pow VV", () => {
     const a = new Vector([2, 3, 4]);
     const b = new Vector([3, 2, 1]);
-    expect(pow(a, b)).toEqual([8, 9, 4]);
+    expect(pow(a, b).real).toEqual([8, 9, 4]);
 });
 
 test("pow VS", () => {
     const a = new Vector([2, 3, 4]);
-    expect(pow(a, 2)).toEqual([4, 9, 16]);
+    expect(pow(a, 2).real).toEqual([4, 9, 16]);
 });
 
 test("atan2 VV", () => {
     const y = new Vector([1, 0]);
     const x = new Vector([0, 1]);
-    const result = atan2(y, x);
+    const result = atan2(y, x).real;
     expect(result[0]).toBeCloseTo(Math.PI / 2);
     expect(result[1]).toBeCloseTo(0);
 });
@@ -102,13 +102,13 @@ test("atan2 VV", () => {
 test("max VV", () => {
     const a = new Vector([1, 5, 3]);
     const b = new Vector([4, 2, 6]);
-    expect(max(a, b)).toEqual([4, 5, 6]);
+    expect(max(a, b).real).toEqual([4, 5, 6]);
 });
 
 test("min VV", () => {
     const a = new Vector([1, 5, 3]);
     const b = new Vector([4, 2, 6]);
-    expect(min(a, b)).toEqual([1, 2, 3]);
+    expect(min(a, b).real).toEqual([1, 2, 3]);
 });
 
 // Comparison operations
@@ -171,21 +171,21 @@ test("gt SV", () => {
 test("div by zero", () => {
     const a = new Vector([1, 2]);
     const b = new Vector([0, 0]);
-    expect(div(a, b)).toEqual([Infinity, Infinity]);
+    expect(div(a, b).real).toEqual([Infinity, Infinity]);
 });
 
 test("single element vectors", () => {
     const a = new Vector([5]);
     const b = new Vector([3]);
-    expect(add(a, b)).toEqual([8]);
-    expect(sub(a, b)).toEqual([2]);
-    expect(mul(a, b)).toEqual([15]);
+    expect(add(a, b).real).toEqual([8]);
+    expect(sub(a, b).real).toEqual([2]);
+    expect(mul(a, b).real).toEqual([15]);
 });
 
 test("negative values", () => {
     const a = new Vector([-1, -2, 3]);
     const b = new Vector([4, -5, -6]);
-    expect(mul(a, b)).toEqual([-4, 10, -18]);
+    expect(mul(a, b).real).toEqual([-4, 10, -18]);
 });
 
 test("two scalar operands throws", () => {

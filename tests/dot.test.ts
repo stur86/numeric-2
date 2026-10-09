@@ -63,7 +63,7 @@ describe("dot products vs NumPy", () => {
         const B = res.inputs.B as number[][];
         const expected = res.expected as number[][];
 
-        const actual = linalg.dot(A, B) as number[][];
+        const actual = linalg.dot(A, B);
         assertClose2D(actual, expected, 1e-10, "dot MM: ");
     });
 

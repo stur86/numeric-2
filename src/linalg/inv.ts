@@ -1,4 +1,5 @@
 import { clone } from "../utils";
+import Matrix from "../matrix";
 import { type MatrixLike, toRawMatrix, assertSquare } from "./wrap";
 
 /**
@@ -7,7 +8,7 @@ import { type MatrixLike, toRawMatrix, assertSquare } from "./wrap";
  * @param x     A square matrix.
  * @returns     The inverse matrix.
  */
-export function inv(x: MatrixLike): number[][] {
+export function inv(x: MatrixLike): Matrix {
     const rawX = toRawMatrix(x, "inv");
     assertSquare(rawX, "inv");
     const n = rawX.length;
@@ -76,5 +77,5 @@ export function inv(x: MatrixLike): number[][] {
         }
     }
 
-    return I;
+    return new Matrix(I);
 }

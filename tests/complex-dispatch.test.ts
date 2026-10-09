@@ -25,8 +25,8 @@ describe("complex UnaryMethod dispatch", () => {
             for (const seed of SEEDS) {
                 test(`${op} n=${n} seed=${seed}`, async () => {
                     const resp = await oracle({ op: `cx_${op}`, seed, n });
-                    const input = resp.inputs.x as { re: number[]; im: number[] };
-                    const expected = resp.expected as { re: number[]; im: number[] };
+                    const input = resp.inputs.x as unknown as { re: number[]; im: number[] };
+                    const expected = resp.expected as unknown as { re: number[]; im: number[] };
 
                     const v = new Vector(input.re, input.im);
                     const method = new UnaryMethod(v, op);
@@ -50,7 +50,7 @@ describe("complex reducer dispatch", () => {
             for (const seed of SEEDS) {
                 test(`${op} n=${n} seed=${seed}`, async () => {
                     const resp = await oracle({ op: `cx_${op}`, seed, n });
-                    const input = resp.inputs.x as { re: number[]; im: number[] };
+                    const input = resp.inputs.x as unknown as { re: number[]; im: number[] };
                     const expected = resp.expected as number;
 
                     const v = new Vector(input.re, input.im);
@@ -75,9 +75,9 @@ describe("complex BinaryMethod dispatch", () => {
             for (const seed of SEEDS) {
                 test(`${op} VV n=${n} seed=${seed}`, async () => {
                     const resp = await oracle({ op: `cx_${op}`, variant: "VV", seed, n });
-                    const xIn = resp.inputs.x as { re: number[]; im: number[] };
-                    const yIn = resp.inputs.y as { re: number[]; im: number[] };
-                    const expected = resp.expected as { re: number[]; im: number[] };
+                    const xIn = resp.inputs.x as unknown as { re: number[]; im: number[] };
+                    const yIn = resp.inputs.y as unknown as { re: number[]; im: number[] };
+                    const expected = resp.expected as unknown as { re: number[]; im: number[] };
 
                     const vx = new Vector(xIn.re, xIn.im);
                     const vy = new Vector(yIn.re, yIn.im);

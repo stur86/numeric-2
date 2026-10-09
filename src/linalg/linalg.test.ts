@@ -1,4 +1,14 @@
 import { test, expect } from "bun:test";
+import { TensorBase } from "../base";
+
+/** Raw real data of a tensor (asserting it is real); other values pass through. */
+function unwrap(x: any): any {
+    if (x instanceof TensorBase) {
+        expect(x.imag).toBeNull();
+        return x.real;
+    }
+    return x;
+}
 import { LU, LUsolve, solve } from "./lu";
 import { inv } from "./inv";
 import { det } from "./det";
@@ -7,6 +17,8 @@ import { identity } from "../utils";
 
 // Helper to compare matrices/vectors with tolerance
 function expectClose(a: any, b: any, tol: number = 1e-10) {
+    a = unwrap(a);
+    b = unwrap(b);
     if (typeof a === 'number') {
         expect(a).toBeCloseTo(b, 10);
         return;
@@ -92,7 +104,7 @@ test("inv identity", () => {
 });
 
 test("inv 1x1", () => {
-    expect(inv([[4]])).toEqual([[0.25]]);
+    expect(inv([[4]]).real).toEqual([[0.25]]);
 });
 
 test("inv singular throws", () => {
@@ -175,8 +187,8 @@ test("Matrix inputs give the same results as raw arrays", () => {
     const M = new Matrix(raw);
     expect(det(M)).toBeCloseTo(-2, 12);
     expectClose(solve(M, new Vector([5, 6])), solve(raw, [5, 6]));
-    expect(inv(M)).toEqual(inv(raw));
-    expect(dot(M, M)).toEqual(dot(raw, raw));
+    expect(inv(M).real).toEqual(inv(raw).real);
+    expect(dot(M, M).real).toEqual(dot(raw, raw).real);
 });
 
 test("real-only routines reject complex inputs", () => {
@@ -213,6 +225,71 @@ test("unsupported complex ops give a clear error", () => {
 test("real + complex vectors are added in complex mode", () => {
     const r = new Vector([1, 2]);
     const c = new Vector([1, 2], [3, 4]);
-    expect(add(r, c)).toEqual([[2, 4], [3, 4]]);
-    expect(add(c, r)).toEqual([[2, 4], [3, 4]]);
+    for (const sum of [add(r, c), add(c, r)]) {
+        expect(sum).toBeInstanceOf(Vector);
+        expect(sum.real).toEqual([2, 4]);
+        expect(sum.imag).toEqual([3, 4]);
+    }
+});
+
+// Return types: public routines return Vector/Matrix
+
+import { dotMMsmall } from "../core/dot";
+import { transpose } from "../utils";
+import { norm2 } from "./norm";
+import { house, toUpperHessenberg, QRFrancis } from "./house";
+
+test("public routines return Vector/Matrix", () => {
+    const A = [[4, 7], [2, 6]];
+    expect(solve(A, [1, 2])).toBeInstanceOf(Vector);
+    expect(inv(A)).toBeInstanceOf(Matrix);
+    expect(LU(A).LU).toBeInstanceOf(Matrix);
+    expect(LUsolve(LU(A), [1, 2])).toBeInstanceOf(Vector);
+    expect(dot(A, A)).toBeInstanceOf(Matrix);
+    expect(dot(A, [1, 2])).toBeInstanceOf(Vector);
+    expect(dot([1, 2], A)).toBeInstanceOf(Vector);
+    expect(typeof dot([1, 2], [3, 4])).toBe("number");
+    expect(add([1, 2], 1)).toBeInstanceOf(Vector);
+});
+
+test("dot scales matrices by scalars", () => {
+    expect(dot(2, [[1, 2], [3, 4]]).real).toEqual([[2, 4], [6, 8]]);
+    expect(dot(new Matrix([[1, 2], [3, 4]]), 3).real).toEqual([[3, 6], [9, 12]]);
+});
+
+test("arithmetic and norms accept raw arrays", () => {
+    expect(add([1, 2, 3], [4, 5, 6]).real).toEqual([5, 7, 9]);
+    expect(add(1, [1, 2]).real).toEqual([2, 3]);
+    expect(eq([1, 2], [1, 3])).toEqual([true, false]);
+    expect(norm2([3, 4])).toBe(5);
+    expect(normInf([-7, 2])).toBe(7);
+});
+
+test("house returns a unit Householder vector", () => {
+    const x = [3, 1, 2];
+    const v = house(new Vector(x));
+    expect(v).toBeInstanceOf(Vector);
+    expect(norm2(v)).toBeCloseTo(1, 12);
+    // (I - 2 v v^T) x has zeros below the first entry
+    const vr = v.real as number[];
+    const vx = dot(vr, x);
+    const Hx = x.map((xi, i) => xi - 2 * vr[i] * vx);
+    expectClose(Hx.slice(1), [0, 0]);
+});
+
+test("toUpperHessenberg and QRFrancis wrap their results", () => {
+    const A = [[4, 1, 2, 3], [1, 3, 0, 1], [2, 0, 5, 2], [3, 1, 2, 6]];
+    const { H, Q } = toUpperHessenberg(new Matrix(A));
+    expect(H).toBeInstanceOf(Matrix);
+    expect(Q).toBeInstanceOf(Matrix);
+    const Hr = H.real as number[][];
+    const Qr = Q.real as number[][];
+    // H is upper Hessenberg and H = Q A Q^T
+    for (let i = 2; i < 4; i++) for (let j = 0; j < i - 1; j++) expect(Math.abs(Hr[i][j])).toBeLessThan(1e-12);
+    expectClose(dotMMsmall(dotMMsmall(Qr, A), transpose(Qr)), Hr);
+
+    const qr = QRFrancis(H);
+    expect(qr.Q).toBeInstanceOf(Matrix);
+    const covered = qr.B.reduce((n, [s, e]) => n + e - s + 1, 0);
+    expect(covered).toBe(4);
 });

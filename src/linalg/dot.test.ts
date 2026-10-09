@@ -100,23 +100,23 @@ test("dot vector * vector", () => {
 });
 
 test("dot matrix * vector", () => {
-    expect(dot([[1, 2], [3, 4]], [5, 6])).toEqual([17, 39]);
+    expect(dot([[1, 2], [3, 4]], [5, 6]).real).toEqual([17, 39]);
 });
 
 test("dot vector * matrix", () => {
-    expect(dot([1, 2], [[3, 4], [5, 6]])).toEqual([13, 16]);
+    expect(dot([1, 2], [[3, 4], [5, 6]]).real).toEqual([13, 16]);
 });
 
 test("dot matrix * matrix", () => {
-    expect(dot([[1, 2], [3, 4]], [[5, 6], [7, 8]])).toEqual([[19, 22], [43, 50]]);
+    expect(dot([[1, 2], [3, 4]], [[5, 6], [7, 8]]).real).toEqual([[19, 22], [43, 50]]);
 });
 
 test("dot scalar * vector", () => {
-    expect(dot(3, [1, 2, 3])).toEqual([3, 6, 9]);
+    expect(dot(3, [1, 2, 3]).real).toEqual([3, 6, 9]);
 });
 
 test("dot vector * scalar", () => {
-    expect(dot([1, 2, 3], 3)).toEqual([3, 6, 9]);
+    expect(dot([1, 2, 3], 3).real).toEqual([3, 6, 9]);
 });
 
 // Larger matrix to trigger dotMMbig path
@@ -131,5 +131,5 @@ test("dot large matrix uses big path", () => {
         A.push(row);
     }
     // A * I should equal A
-    expect(dot(A, I)).toEqual(A);
+    expect(dot(A, I).real).toEqual(A);
 });

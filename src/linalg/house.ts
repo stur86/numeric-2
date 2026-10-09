@@ -6,6 +6,9 @@
 import { clone, identity, dim, getBlock, tensor, rep, diag } from "../utils";
 import { dotVV, dotMV, dotVM, dotMMsmall } from "../core/dot";
 import { _re_v_norm2 } from "../core/reducers";
+import Vector from "../vector";
+import Matrix from "../matrix";
+import { type MatrixLike, type VectorLike, toRawMatrix, toRawVector } from "./wrap";
 
 /** IEEE 754 double-precision machine epsilon. */
 export const epsilon = 2.220446049250313e-16;
@@ -16,7 +19,7 @@ export const epsilon = 2.220446049250313e-16;
  * Given a vector x, returns a unit vector v such that the Householder
  * matrix H = I - 2*v*v^T zeroes out all but the first element of x.
  */
-export function house(x: number[]): number[] {
+export function houseRaw(x: number[]): number[] {
     const n = x.length;
     const v = Array(n);
     for (let i = n - 1; i >= 0; i--) v[i] = x[i];
@@ -34,7 +37,7 @@ export function house(x: number[]): number[] {
     return v;
 }
 
-export type HessenbergResult = {
+type RawHessenbergResult = {
     H: number[][];
     Q: number[][];
 };
@@ -42,9 +45,9 @@ export type HessenbergResult = {
 /**
  * Reduce a real square matrix to upper Hessenberg form using Householder reflections.
  *
- * Returns {H, Q} where H = Q^T * A * Q is upper Hessenberg and Q is orthogonal.
+ * Returns {H, Q} where H = Q * A * Q^T is upper Hessenberg and Q is orthogonal.
  */
-export function toUpperHessenberg(me: number[][]): HessenbergResult {
+export function toUpperHessenbergRaw(me: number[][]): RawHessenbergResult {
     const s = dim(me);
     if (s.length !== 2 || s[0] !== s[1]) {
         throw new Error("numeric: toUpperHessenberg() only works on square matrices");
@@ -64,7 +67,7 @@ export function toUpperHessenberg(me: number[][]): HessenbergResult {
             x[i - j - 1] = A[i][j];
         }
         if (_re_v_norm2(x, x.length) > 0) {
-            v = house(x);
+            v = houseRaw(x);
 
             // Apply H from left: A[j+1:m, j:m] -= 2 * v * (v^T * A[j+1:m, j:m])
             B = getBlock(A, j + 1, j, m, m);
@@ -98,7 +101,7 @@ export function toUpperHessenberg(me: number[][]): HessenbergResult {
     return { H: A, Q };
 }
 
-export type QRFrancisResult = {
+type RawQRFrancisResult = {
     Q: number[][];
     B: number[][];
 };
@@ -109,7 +112,7 @@ export type QRFrancisResult = {
  * Returns {Q, B} where Q is orthogonal and B is an array of [start, end] pairs
  * identifying diagonal blocks (1×1 for real eigenvalues, 2×2 for complex pairs).
  */
-export function QRFrancis(H: number[][], maxiter: number = 10000): QRFrancisResult {
+export function QRFrancisRaw(H: number[][], maxiter: number = 10000): RawQRFrancisResult {
     H = clone(H) as number[][];
     const s = dim(H);
     const m = s[0] as number;
@@ -130,8 +133,8 @@ export function QRFrancis(H: number[][], maxiter: number = 10000): QRFrancisResu
         // Check for deflation
         for (j = 0; j < m - 1; j++) {
             if (Math.abs(H[j + 1][j]) < epsilon * (Math.abs(H[j][j]) + Math.abs(H[j + 1][j + 1]))) {
-                const QH1 = QRFrancis(getBlock(H, 0, 0, j + 1, j + 1), maxiter);
-                const QH2 = QRFrancis(getBlock(H, j + 1, j + 1, m, m), maxiter);
+                const QH1 = QRFrancisRaw(getBlock(H, 0, 0, j + 1, j + 1), maxiter);
+                const QH2 = QRFrancisRaw(getBlock(H, j + 1, j + 1, m, m), maxiter);
 
                 B = Array(j + 1);
                 for (i = 0; i <= j; i++) B[i] = Q[i];
@@ -180,7 +183,7 @@ export function QRFrancis(H: number[][], maxiter: number = 10000): QRFrancisResu
 
         // Initial bulge: Householder from first column of shift polynomial
         x = [Hloc[0][0], Hloc[1][0], Hloc[2][0]];
-        v = house(x);
+        v = houseRaw(x);
 
         // Apply from left to rows 0..2
         B = [H[0], H[1], H[2]];
@@ -215,8 +218,8 @@ export function QRFrancis(H: number[][], maxiter: number = 10000): QRFrancisResu
             // Check for deflation during chase
             for (k = j; k <= j + 1; k++) {
                 if (Math.abs(H[k + 1][k]) < epsilon * (Math.abs(H[k][k]) + Math.abs(H[k + 1][k + 1]))) {
-                    const QH1 = QRFrancis(getBlock(H, 0, 0, k + 1, k + 1), maxiter);
-                    const QH2 = QRFrancis(getBlock(H, k + 1, k + 1, m, m), maxiter);
+                    const QH1 = QRFrancisRaw(getBlock(H, 0, 0, k + 1, k + 1), maxiter);
+                    const QH2 = QRFrancisRaw(getBlock(H, k + 1, k + 1, m, m), maxiter);
 
                     B = Array(k + 1);
                     for (i = 0; i <= k; i++) B[i] = Q[i];
@@ -239,7 +242,7 @@ export function QRFrancis(H: number[][], maxiter: number = 10000): QRFrancisResu
             J = Math.min(m - 1, j + 3);
             x = Array(J - j);
             for (i = j + 1; i <= J; i++) x[i - j - 1] = H[i][j];
-            v = house(x);
+            v = houseRaw(x);
 
             // Apply from left
             B = getBlock(H, j + 1, j, J + 1, m);
@@ -271,4 +274,52 @@ export function QRFrancis(H: number[][], maxiter: number = 10000): QRFrancisResu
         }
     }
     throw new Error("numeric: eigenvalue iteration does not converge -- increase maxiter?");
+}
+
+// Public wrappers: accept Matrix/Vector or raw arrays, return Matrix/Vector.
+// The *Raw versions above are used internally by eig().
+
+export type HessenbergResult = {
+    /** Upper Hessenberg matrix H = Q * A * Q^T. */
+    H: Matrix;
+    /** Orthogonal matrix Q. */
+    Q: Matrix;
+};
+
+export type QRFrancisResult = {
+    /** Orthogonal matrix Q. */
+    Q: Matrix;
+    /** [start, end] index pairs of the diagonal blocks (1×1 or 2×2). */
+    B: [number, number][];
+};
+
+/**
+ * Compute a Householder reflection vector.
+ *
+ * Given a vector x, returns a unit vector v such that the Householder
+ * matrix H = I - 2*v*v^T zeroes out all but the first element of x.
+ */
+export function house(x: VectorLike): Vector {
+    return new Vector(houseRaw(toRawVector(x, "house")));
+}
+
+/**
+ * Reduce a real square matrix to upper Hessenberg form using Householder reflections.
+ *
+ * Returns {H, Q} where H = Q * A * Q^T is upper Hessenberg and Q is orthogonal.
+ */
+export function toUpperHessenberg(A: MatrixLike): HessenbergResult {
+    const { H, Q } = toUpperHessenbergRaw(toRawMatrix(A, "toUpperHessenberg"));
+    return { H: new Matrix(H), Q: new Matrix(Q) };
+}
+
+/**
+ * QR algorithm with implicit Francis double shifts on an upper Hessenberg matrix.
+ *
+ * Returns {Q, B} where Q is orthogonal and B is an array of [start, end] pairs
+ * identifying diagonal blocks (1×1 for real eigenvalues, 2×2 for complex pairs).
+ */
+export function QRFrancis(H: MatrixLike, maxiter: number = 10000): QRFrancisResult {
+    const { Q, B } = QRFrancisRaw(toRawMatrix(H, "QRFrancis"), maxiter);
+    return { Q: new Matrix(Q), B: B as [number, number][] };
 }

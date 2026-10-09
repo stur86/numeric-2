@@ -7,6 +7,16 @@
 
 import { spawn, type Subprocess } from "bun";
 import { join } from "path";
+import { TensorBase } from "../src/base";
+
+/** Raw real data of a Vector/Matrix (which must be real); raw arrays pass through. */
+function realData<T>(x: T | TensorBase, label: string): T {
+    if (x instanceof TensorBase) {
+        if (x.is_complex) throw new Error(`${label}expected a real tensor, got a complex one`);
+        return x.real as T;
+    }
+    return x;
+}
 
 export type OracleRequest =
     | { op: string; seed: number; n: number; variant?: string }
@@ -148,11 +158,12 @@ export function killOracle(): void {
  * Compare two flat number arrays element-wise within a tolerance.
  */
 export function assertClose(
-    actual: number[],
+    actualIn: number[] | TensorBase,
     expected: number[],
     tol: number = 1e-10,
     label: string = ""
 ): void {
+    const actual = realData(actualIn, label);
     if (actual.length !== expected.length) {
         throw new Error(
             `${label}Length mismatch: actual ${actual.length} vs expected ${expected.length}`
@@ -173,11 +184,12 @@ export function assertClose(
  * Compare two 2D number arrays element-wise within a tolerance.
  */
 export function assertClose2D(
-    actual: number[][],
+    actualIn: number[][] | TensorBase,
     expected: number[][],
     tol: number = 1e-10,
     label: string = ""
 ): void {
+    const actual = realData(actualIn, label);
     if (actual.length !== expected.length) {
         throw new Error(
             `${label}Row count mismatch: actual ${actual.length} vs expected ${expected.length}`

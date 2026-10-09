@@ -1,4 +1,6 @@
 import { norm2, norm1, norm2squared, normInf } from "./norm";
+import type { Operand } from "./arithmetic";
+import type { DotOperand } from "./dot";
 import { add, sub, mul, div, mod, pow, atan2, max, min, eq, neq, lt, gt, leq, geq } from "./arithmetic";
 import { dot, dotVV, dotMV, dotVM, dotMMsmall, dotMMbig } from "./dot";
 
@@ -23,3 +25,4 @@ export { house, toUpperHessenberg, QRFrancis, epsilon, eig };
 export type { HessenbergResult, QRFrancisResult, EigResult };
 
 export type { MatrixLike, VectorLike } from "./wrap";
+export type { Operand, DotOperand };
