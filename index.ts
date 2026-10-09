@@ -8,7 +8,11 @@ import * as interpolate from "./src/interpolate";
 import * as ode from "./src/ode";
 import * as sparse from "./src/sparse";
 import { SparseMatrix } from "./src/sparse";
-import { dim, rep, linspace, random, identity, diag, getDiag, clone, transpose, negtranspose, same, tensor, getBlock, getBlock1D } from "./src/utils";
+import { dim, rep, linspace, random, identity, diag } from "./src/utils";
+// These accept raw arrays or Vector/Matrix (real or complex)
+import {
+    clone, transpose, negtranspose, transjugate, getDiag, getBlock, getBlock1D, setBlock, getRange, blockMatrix, tensor, same,
+} from "./src/tensorutils";
 
 export {
     Vector,
@@ -20,7 +24,8 @@ export {
     sparse,
     SparseMatrix,
     complex, isComplex,
-    dim, rep, linspace, random, identity, diag, getDiag, clone, transpose, negtranspose, same, tensor, getBlock, getBlock1D,
+    dim, rep, linspace, random, identity, diag,
+    clone, transpose, negtranspose, transjugate, getDiag, getBlock, getBlock1D, setBlock, getRange, blockMatrix, tensor, same,
 };
 
 export type { Complex, Scalar };

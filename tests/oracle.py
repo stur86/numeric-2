@@ -546,6 +546,32 @@ def handle_sparse_solve(req: dict) -> dict:
     return {"inputs": inputs, "expected": spsolve(A, b).tolist()}
 
 
+def handle_logic(req: dict) -> dict:
+    """Logical, bitwise, trunc and reciprocal ops (integers in a, b; floats in x, y; complex z)."""
+    rng = np.random.default_rng(req["seed"])
+    shape = size(req)
+    a = rng.integers(-1000, 1000, shape).astype(np.int32)
+    b = rng.integers(-1000, 1000, shape).astype(np.int32)
+    k = rng.integers(0, 8, shape).astype(np.int32)        # shift counts
+    p = rng.integers(0, 2, shape)                          # 0/1 for logical ops
+    q = rng.integers(0, 2, shape)
+    x = rng.standard_normal(shape) * 10
+    y = rng.uniform(0.3, 2.0, shape) * rng.choice([-1, 1], shape)
+    z = rng.standard_normal(shape) + 1j * rng.standard_normal(shape)
+    exp = {
+        "band": np.bitwise_and(a, b), "bor": np.bitwise_or(a, b), "bxor": np.bitwise_xor(a, b),
+        "bnot": np.invert(a), "lshift": np.left_shift(a, k), "rshift": np.right_shift(a, k),
+        "rrshift": (a.astype(np.uint32) >> k.astype(np.uint32)).astype(np.float64),
+        "and": np.logical_and(p, q), "or": np.logical_or(p, q), "not": np.logical_not(p),
+        "trunc": np.round(x / y) * y, "reciprocal": 1 / x,
+    }
+    out = {k2: v.tolist() for k2, v in exp.items()}
+    out["cx_reciprocal"] = cx_to_parts(1 / z)
+    inputs = {"a": a.tolist(), "b": b.tolist(), "k": k.tolist(), "p": p.tolist(), "q": q.tolist(),
+              "x": x.tolist(), "y": y.tolist(), "z": cx_to_parts(z)}
+    return {"inputs": inputs, "expected": out}
+
+
 def handle_cx_dot_VV(req: dict) -> dict:
     rng = np.random.default_rng(req["seed"])
     n = req["n"]
@@ -640,6 +666,8 @@ def process(req: dict) -> dict:
         return handle_ode(req)
     elif op == "sparse":
         return handle_sparse(req)
+    elif op == "logic":
+        return handle_logic(req)
     elif op == "sparse_solve":
         return handle_sparse_solve(req)
     elif op == "getBlock":

@@ -31,6 +31,7 @@ const OPS = {
     tan: mapOp("tan"), asin: mapOp("asin"), acos: mapOp("acos"), atan: mapOp("atan"), neg: mapOp("neg"),
     ceil: mapOp("ceil"), floor: mapOp("floor"), round: mapOp("round"), conj: mapOp("conj"),
     isNaN: predicateOp("isNaN"), isFinite: predicateOp("isFinite"),
+    reciprocal: mapOp("reciprocal"), bnot: mapOp("bnot"), not: predicateOp("not"),
     // Complex abs returns [|x|, zeros]: keep only the real part
     abs: fastUnary<any>("abs", toVector, toMatrix, (x) => {
         const method = new UnaryMethod(toTensor(x), "abs");
@@ -128,4 +129,19 @@ export function isNaN<T extends TensorLike>(x: T): BoolOf<T> {
 /** Element-wise test for finite values. */
 export function isFinite<T extends TensorLike>(x: T): BoolOf<T> {
     return OPS.isFinite(x);
+}
+
+/** Element-wise reciprocal 1/x (real or complex). */
+export function reciprocal<T extends TensorLike>(x: T): TensorOf<T> {
+    return OPS.reciprocal(x);
+}
+
+/** Element-wise bitwise NOT, ~x (operands converted to 32-bit integers). */
+export function bnot<T extends TensorLike>(x: T): TensorOf<T> {
+    return OPS.bnot(x);
+}
+
+/** Element-wise logical NOT, as booleans (accepts numbers or booleans). */
+export function not<T extends TensorLike | boolean[] | boolean[][]>(x: T): T extends MatrixLike | boolean[][] ? boolean[][] : boolean[] {
+    return OPS.not(x);
 }

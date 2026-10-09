@@ -403,3 +403,246 @@ export function _re_v_geqSV(x: number, y: number[], n: number): number[] {
     return ans;
 }
 
+export function _re_v_andVV(x: boolean[], y: boolean[], n: number): boolean[] {
+    let i = n-1,
+        ans = Array(n);
+    for (; i >= 0; i -= 1) {
+        ans[i] = !!x[i] && !!y[i];
+    }
+    return ans;
+}
+
+export function _re_v_andVS(x: boolean[], y: boolean, n: number): boolean[] {
+    let i = n-1,
+        ans = Array(n);
+    for (; i >= 0; i -= 1) {
+        ans[i] = !!x[i] && !!y;
+    }
+    return ans;
+}
+
+export function _re_v_andSV(x: boolean, y: boolean[], n: number): boolean[] {
+    let i = n-1,
+        ans = Array(n);
+    for (; i >= 0; i -= 1) {
+        ans[i] = !!x && !!y[i];
+    }
+    return ans;
+}
+
+export function _re_v_orVV(x: boolean[], y: boolean[], n: number): boolean[] {
+    let i = n-1,
+        ans = Array(n);
+    for (; i >= 0; i -= 1) {
+        ans[i] = !!x[i] || !!y[i];
+    }
+    return ans;
+}
+
+export function _re_v_orVS(x: boolean[], y: boolean, n: number): boolean[] {
+    let i = n-1,
+        ans = Array(n);
+    for (; i >= 0; i -= 1) {
+        ans[i] = !!x[i] || !!y;
+    }
+    return ans;
+}
+
+export function _re_v_orSV(x: boolean, y: boolean[], n: number): boolean[] {
+    let i = n-1,
+        ans = Array(n);
+    for (; i >= 0; i -= 1) {
+        ans[i] = !!x || !!y[i];
+    }
+    return ans;
+}
+
+export function _re_v_bandVV(x: number[], y: number[], n: number): number[] {
+    let i = n-1,
+        ans = Array(n);
+    for (; i >= 0; i -= 1) {
+        ans[i] = x[i] & y[i];
+    }
+    return ans;
+}
+
+export function _re_v_bandVS(x: number[], y: number, n: number): number[] {
+    let i = n-1,
+        ans = Array(n);
+    for (; i >= 0; i -= 1) {
+        ans[i] = x[i] & y;
+    }
+    return ans;
+}
+
+export function _re_v_bandSV(x: number, y: number[], n: number): number[] {
+    let i = n-1,
+        ans = Array(n);
+    for (; i >= 0; i -= 1) {
+        ans[i] = x & y[i];
+    }
+    return ans;
+}
+
+export function _re_v_borVV(x: number[], y: number[], n: number): number[] {
+    let i = n-1,
+        ans = Array(n);
+    for (; i >= 0; i -= 1) {
+        ans[i] = x[i] | y[i];
+    }
+    return ans;
+}
+
+export function _re_v_borVS(x: number[], y: number, n: number): number[] {
+    let i = n-1,
+        ans = Array(n);
+    for (; i >= 0; i -= 1) {
+        ans[i] = x[i] | y;
+    }
+    return ans;
+}
+
+export function _re_v_borSV(x: number, y: number[], n: number): number[] {
+    let i = n-1,
+        ans = Array(n);
+    for (; i >= 0; i -= 1) {
+        ans[i] = x | y[i];
+    }
+    return ans;
+}
+
+export function _re_v_bxorVV(x: number[], y: number[], n: number): number[] {
+    let i = n-1,
+        ans = Array(n);
+    for (; i >= 0; i -= 1) {
+        ans[i] = x[i] ^ y[i];
+    }
+    return ans;
+}
+
+export function _re_v_bxorVS(x: number[], y: number, n: number): number[] {
+    let i = n-1,
+        ans = Array(n);
+    for (; i >= 0; i -= 1) {
+        ans[i] = x[i] ^ y;
+    }
+    return ans;
+}
+
+export function _re_v_bxorSV(x: number, y: number[], n: number): number[] {
+    let i = n-1,
+        ans = Array(n);
+    for (; i >= 0; i -= 1) {
+        ans[i] = x ^ y[i];
+    }
+    return ans;
+}
+
+export function _re_v_lshiftVV(x: number[], y: number[], n: number): number[] {
+    let i = n-1,
+        ans = Array(n);
+    for (; i >= 0; i -= 1) {
+        ans[i] = x[i] << y[i];
+    }
+    return ans;
+}
+
+export function _re_v_lshiftVS(x: number[], y: number, n: number): number[] {
+    let i = n-1,
+        ans = Array(n);
+    for (; i >= 0; i -= 1) {
+        ans[i] = x[i] << y;
+    }
+    return ans;
+}
+
+export function _re_v_lshiftSV(x: number, y: number[], n: number): number[] {
+    let i = n-1,
+        ans = Array(n);
+    for (; i >= 0; i -= 1) {
+        ans[i] = x << y[i];
+    }
+    return ans;
+}
+
+export function _re_v_rshiftVV(x: number[], y: number[], n: number): number[] {
+    let i = n-1,
+        ans = Array(n);
+    for (; i >= 0; i -= 1) {
+        ans[i] = x[i] >> y[i];
+    }
+    return ans;
+}
+
+export function _re_v_rshiftVS(x: number[], y: number, n: number): number[] {
+    let i = n-1,
+        ans = Array(n);
+    for (; i >= 0; i -= 1) {
+        ans[i] = x[i] >> y;
+    }
+    return ans;
+}
+
+export function _re_v_rshiftSV(x: number, y: number[], n: number): number[] {
+    let i = n-1,
+        ans = Array(n);
+    for (; i >= 0; i -= 1) {
+        ans[i] = x >> y[i];
+    }
+    return ans;
+}
+
+export function _re_v_rrshiftVV(x: number[], y: number[], n: number): number[] {
+    let i = n-1,
+        ans = Array(n);
+    for (; i >= 0; i -= 1) {
+        ans[i] = x[i] >>> y[i];
+    }
+    return ans;
+}
+
+export function _re_v_rrshiftVS(x: number[], y: number, n: number): number[] {
+    let i = n-1,
+        ans = Array(n);
+    for (; i >= 0; i -= 1) {
+        ans[i] = x[i] >>> y;
+    }
+    return ans;
+}
+
+export function _re_v_rrshiftSV(x: number, y: number[], n: number): number[] {
+    let i = n-1,
+        ans = Array(n);
+    for (; i >= 0; i -= 1) {
+        ans[i] = x >>> y[i];
+    }
+    return ans;
+}
+
+export function _re_v_truncVV(x: number[], y: number[], n: number): number[] {
+    let i = n-1,
+        ans = Array(n);
+    for (; i >= 0; i -= 1) {
+        ans[i] = Math.round(x[i] / y[i]) * y[i];
+    }
+    return ans;
+}
+
+export function _re_v_truncVS(x: number[], y: number, n: number): number[] {
+    let i = n-1,
+        ans = Array(n);
+    for (; i >= 0; i -= 1) {
+        ans[i] = Math.round(x[i] / y) * y;
+    }
+    return ans;
+}
+
+export function _re_v_truncSV(x: number, y: number[], n: number): number[] {
+    let i = n-1,
+        ans = Array(n);
+    for (; i >= 0; i -= 1) {
+        ans[i] = Math.round(x / y[i]) * y[i];
+    }
+    return ans;
+}
+

@@ -298,7 +298,7 @@ const kernel = (name: string): Function | undefined => {
 /** A real vector operand's data, or null if it is not one (complex, matrix, other). */
 function realVectorData(x: unknown): number[] | null {
     if (x instanceof Vector) return x._im === null ? x._re : null;
-    if (Array.isArray(x) && x.length > 0 && typeof x[0] === "number") return x as number[];
+    if (Array.isArray(x) && x.length > 0 && (typeof x[0] === "number" || typeof x[0] === "boolean")) return x as number[];
     return null;
 }
 

@@ -160,3 +160,30 @@ export function _re_v_conj(x: number[], n: number): number[] {
     return ans;
 }
 
+export function _re_v_reciprocal(x: number[], n: number): number[] {
+    let i = n-1,
+        ans = Array(n);
+    for (; i >= 0; i -= 1) {
+        ans[i] = 1 / x[i];
+    }
+    return ans;
+}
+
+export function _re_v_not(x: number[], n: number): boolean[] {
+    let i = n-1,
+        ans = Array(n);
+    for (; i >= 0; i -= 1) {
+        ans[i] = !x[i];
+    }
+    return ans;
+}
+
+export function _re_v_bnot(x: number[], n: number): number[] {
+    let i = n-1,
+        ans = Array(n);
+    for (; i >= 0; i -= 1) {
+        ans[i] = ~x[i];
+    }
+    return ans;
+}
+

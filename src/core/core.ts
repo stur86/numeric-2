@@ -31,6 +31,9 @@ import {
     _re_v_isFinite,
     _re_v_clone,
     _re_v_conj,
+    _re_v_reciprocal,
+    _re_v_not,
+    _re_v_bnot,
 } from "./maps";
 import {
     _re_v_addVV, _re_v_addVS, _re_v_addSV,
@@ -48,6 +51,33 @@ import {
     _re_v_gtVV, _re_v_gtVS, _re_v_gtSV,
     _re_v_leqVV, _re_v_leqVS, _re_v_leqSV,
     _re_v_geqVV, _re_v_geqVS, _re_v_geqSV,
+    _re_v_andVV,
+    _re_v_andVS,
+    _re_v_andSV,
+    _re_v_orVV,
+    _re_v_orVS,
+    _re_v_orSV,
+    _re_v_bandVV,
+    _re_v_bandVS,
+    _re_v_bandSV,
+    _re_v_borVV,
+    _re_v_borVS,
+    _re_v_borSV,
+    _re_v_bxorVV,
+    _re_v_bxorVS,
+    _re_v_bxorSV,
+    _re_v_lshiftVV,
+    _re_v_lshiftVS,
+    _re_v_lshiftSV,
+    _re_v_rshiftVV,
+    _re_v_rshiftVS,
+    _re_v_rshiftSV,
+    _re_v_rrshiftVV,
+    _re_v_rrshiftVS,
+    _re_v_rrshiftSV,
+    _re_v_truncVV,
+    _re_v_truncVS,
+    _re_v_truncSV,
 } from "./binops";
 import {
     _cx_v_neg,
@@ -59,6 +89,7 @@ import {
     _cx_v_sqrt,
     _cx_v_sin,
     _cx_v_cos,
+    _cx_v_reciprocal,
 } from "./cx.maps";
 import {
     _cx_v_addVV, _cx_v_addVS, _cx_v_addSV,
@@ -201,6 +232,38 @@ export default class NumericCore {
 
     static _cx_v_sum = _cx_v_sum;
     static _cx_v_prod = _cx_v_prod;
+
+    static _re_v_reciprocal = _re_v_reciprocal;
+    static _re_v_not = _re_v_not;
+    static _re_v_bnot = _re_v_bnot;
+    static _re_v_andVV = _re_v_andVV;
+    static _re_v_andVS = _re_v_andVS;
+    static _re_v_andSV = _re_v_andSV;
+    static _re_v_orVV = _re_v_orVV;
+    static _re_v_orVS = _re_v_orVS;
+    static _re_v_orSV = _re_v_orSV;
+    static _re_v_bandVV = _re_v_bandVV;
+    static _re_v_bandVS = _re_v_bandVS;
+    static _re_v_bandSV = _re_v_bandSV;
+    static _re_v_borVV = _re_v_borVV;
+    static _re_v_borVS = _re_v_borVS;
+    static _re_v_borSV = _re_v_borSV;
+    static _re_v_bxorVV = _re_v_bxorVV;
+    static _re_v_bxorVS = _re_v_bxorVS;
+    static _re_v_bxorSV = _re_v_bxorSV;
+    static _re_v_lshiftVV = _re_v_lshiftVV;
+    static _re_v_lshiftVS = _re_v_lshiftVS;
+    static _re_v_lshiftSV = _re_v_lshiftSV;
+    static _re_v_rshiftVV = _re_v_rshiftVV;
+    static _re_v_rshiftVS = _re_v_rshiftVS;
+    static _re_v_rshiftSV = _re_v_rshiftSV;
+    static _re_v_rrshiftVV = _re_v_rrshiftVV;
+    static _re_v_rrshiftVS = _re_v_rrshiftVS;
+    static _re_v_rrshiftSV = _re_v_rrshiftSV;
+    static _re_v_truncVV = _re_v_truncVV;
+    static _re_v_truncVS = _re_v_truncVS;
+    static _re_v_truncSV = _re_v_truncSV;
+    static _cx_v_reciprocal = _cx_v_reciprocal;
 
     static _re_s_addSS = _re_s_addSS;
     static _re_s_subSS = _re_s_subSS;

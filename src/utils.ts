@@ -332,3 +332,79 @@ export function tensor(x: number[], y: number[]): number[][] {
     }
     return ret;
 }
+/**
+ * Writes B into A (in place) with its top-left corner at (r0, c0).
+ *
+ * @param A     The matrix to modify.
+ * @param r0    Starting row.
+ * @param c0    Starting column.
+ * @param B     The block to write.
+ * @returns     A.
+ */
+export function setBlock(A: number[][], r0: number, c0: number, B: number[][]): number[][] {
+    const m = B.length, n = m > 0 ? B[0].length : 0;
+    if (r0 < 0 || c0 < 0 || r0 + m > A.length || (m > 0 && c0 + n > A[0].length)) {
+        throw new Error(`setBlock: a ${m}x${n} block at (${r0}, ${c0}) does not fit in ${A.length}x${A[0]?.length ?? 0}`);
+    }
+    for (let i = 0; i < m; i++) {
+        const dst = A[r0 + i], src = B[i];
+        for (let j = 0; j < n; j++) dst[c0 + j] = src[j];
+    }
+    return A;
+}
+
+/**
+ * Submatrix of the given rows and columns, in the given order (indices may repeat).
+ *
+ * @param A     A matrix.
+ * @param rows  Row indices.
+ * @param cols  Column indices.
+ * @returns     A[rows][:, cols] as a new matrix.
+ */
+export function getRange(A: number[][], rows: number[], cols: number[]): number[][] {
+    const m = A.length, n = m > 0 ? A[0].length : 0;
+    for (const r of rows) if (!(r >= 0 && r < m)) throw new Error(`getRange: row ${r} out of range`);
+    for (const c of cols) if (!(c >= 0 && c < n)) throw new Error(`getRange: column ${c} out of range`);
+    const ret: number[][] = Array(rows.length);
+    for (let i = rows.length - 1; i >= 0; i--) {
+        const src = A[rows[i]];
+        const row = Array(cols.length);
+        for (let j = cols.length - 1; j >= 0; j--) row[j] = src[cols[j]];
+        ret[i] = row;
+    }
+    return ret;
+}
+
+/**
+ * Assembles a matrix from a grid of blocks: blocks[I][J] is a matrix, all
+ * blocks in grid row I have the same number of rows, and all blocks in grid
+ * column J the same number of columns.
+ *
+ * @param blocks    The grid of blocks.
+ * @returns         The assembled matrix.
+ */
+export function blockMatrix(blocks: number[][][][]): number[][] {
+    const rowsOf = blocks.map((br, I) => {
+        const h = br[0].length;
+        br.forEach((B, J) => {
+            if (B.length !== h) throw new Error(`blockMatrix: block (${I}, ${J}) has ${B.length} rows, expected ${h}`);
+        });
+        return h;
+    });
+    const colsOf = blocks[0].map((B) => B[0].length);
+    blocks.forEach((br, I) => {
+        if (br.length !== colsOf.length) throw new Error(`blockMatrix: grid row ${I} has ${br.length} blocks, expected ${colsOf.length}`);
+        br.forEach((B, J) => {
+            if (B[0].length !== colsOf[J]) throw new Error(`blockMatrix: block (${I}, ${J}) has ${B[0].length} columns, expected ${colsOf[J]}`);
+        });
+    });
+    const out: number[][] = [];
+    blocks.forEach((br, I) => {
+        for (let i = 0; i < rowsOf[I]; i++) {
+            const row: number[] = [];
+            for (const B of br) for (const v of B[i]) row.push(v);
+            out.push(row);
+        }
+    });
+    return out;
+}

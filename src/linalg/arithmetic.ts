@@ -42,7 +42,18 @@ const OPS = {
     mod: arithOp("mod"), pow: arithOp("pow"), atan2: arithOp("atan2"), max: arithOp("max"), min: arithOp("min"),
     eq: compareOp("eq"), neq: compareOp("neq"), lt: compareOp("lt"), gt: compareOp("gt"),
     leq: compareOp("leq"), geq: compareOp("geq"),
+    and: compareOp("and"), or: compareOp("or"),
+    band: arithOp("band"), bor: arithOp("bor"), bxor: arithOp("bxor"),
+    lshift: arithOp("lshift"), rshift: arithOp("rshift"), rrshift: arithOp("rrshift"),
+    trunc: arithOp("trunc"),
 };
+
+/** Operand of a logical op: also accepts boolean arrays (e.g. comparison results). */
+export type LogicalOperand = Operand | boolean | boolean[] | boolean[][];
+
+/** Result type of a logical op: `boolean[][]` if either operand is a matrix, else `boolean[]`. */
+export type LogicalResult<X, Y> =
+    X extends MatrixLike | boolean[][] ? boolean[][] : Y extends MatrixLike | boolean[][] ? boolean[][] : boolean[];
 
 /**
  * Element-wise addition of two tensors of the same shape, or a tensor and a scalar.
@@ -183,4 +194,53 @@ export function leq<X extends Operand, Y extends Operand>(x: X, y: Y): CompareRe
  */
 export function geq<X extends Operand, Y extends Operand>(x: X, y: Y): CompareResult<X, Y> {
     return OPS.geq(x, y);
+}
+
+/**
+ * Element-wise logical AND, as booleans (numbers count as true when nonzero).
+ * Unlike numeric.js, which returns one of the operands (JavaScript's &&),
+ * the result is always boolean.
+ */
+export function and<X extends LogicalOperand, Y extends LogicalOperand>(x: X, y: Y): LogicalResult<X, Y> {
+    return OPS.and(x, y);
+}
+
+/** Element-wise logical OR, as booleans (numbers count as true when nonzero). */
+export function or<X extends LogicalOperand, Y extends LogicalOperand>(x: X, y: Y): LogicalResult<X, Y> {
+    return OPS.or(x, y);
+}
+
+/** Element-wise bitwise AND (operands converted to 32-bit integers). */
+export function band<X extends Operand, Y extends Operand>(x: X, y: Y): ArithResult<X, Y> {
+    return OPS.band(x, y);
+}
+
+/** Element-wise bitwise OR (operands converted to 32-bit integers). */
+export function bor<X extends Operand, Y extends Operand>(x: X, y: Y): ArithResult<X, Y> {
+    return OPS.bor(x, y);
+}
+
+/** Element-wise bitwise XOR (operands converted to 32-bit integers). */
+export function bxor<X extends Operand, Y extends Operand>(x: X, y: Y): ArithResult<X, Y> {
+    return OPS.bxor(x, y);
+}
+
+/** Element-wise left shift, x << y. */
+export function lshift<X extends Operand, Y extends Operand>(x: X, y: Y): ArithResult<X, Y> {
+    return OPS.lshift(x, y);
+}
+
+/** Element-wise sign-propagating right shift, x >> y. */
+export function rshift<X extends Operand, Y extends Operand>(x: X, y: Y): ArithResult<X, Y> {
+    return OPS.rshift(x, y);
+}
+
+/** Element-wise zero-fill right shift, x >>> y. */
+export function rrshift<X extends Operand, Y extends Operand>(x: X, y: Y): ArithResult<X, Y> {
+    return OPS.rrshift(x, y);
+}
+
+/** Element-wise rounding of x to the nearest multiple of y: round(x / y) · y. */
+export function trunc<X extends Operand, Y extends Operand>(x: X, y: Y): ArithResult<X, Y> {
+    return OPS.trunc(x, y);
 }

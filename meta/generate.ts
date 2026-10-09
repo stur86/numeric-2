@@ -76,6 +76,10 @@ const mapArgs: VectorMapMetaFunctionArgs[] = [
     { name: '_re_v_isFinite', mapElement: 'Number.isFinite(x_i)', returnType: 'boolean' },
     { name: '_re_v_clone', mapElement: 'x_i' },
     { name: '_re_v_conj', mapElement: 'x_i' },
+    { name: '_re_v_reciprocal', mapElement: '1 / x_i' },
+    // Logical and bitwise
+    { name: '_re_v_not', mapElement: '!x_i', returnType: 'boolean' },
+    { name: '_re_v_bnot', mapElement: '~x_i' },
 ];
 
 let mapSource = "";
@@ -109,6 +113,18 @@ const binopArgs: VectorBinopMetaFunctionArgs[] = [
     { name: 'gt', expression: 'x_i > y_i' },
     { name: 'leq', expression: 'x_i <= y_i' },
     { name: 'geq', expression: 'x_i >= y_i' },
+    // Logical (boolean results; operands may be numbers or booleans)
+    { name: 'and', expression: '!!x_i && !!y_i', returnType: 'boolean' },
+    { name: 'or', expression: '!!x_i || !!y_i', returnType: 'boolean' },
+    // Bitwise (operands converted to 32-bit integers, as in JavaScript)
+    { name: 'band', expression: 'x_i & y_i' },
+    { name: 'bor', expression: 'x_i | y_i' },
+    { name: 'bxor', expression: 'x_i ^ y_i' },
+    { name: 'lshift', expression: 'x_i << y_i' },
+    { name: 'rshift', expression: 'x_i >> y_i' },
+    { name: 'rrshift', expression: 'x_i >>> y_i' },
+    // Round x to a multiple of y
+    { name: 'trunc', expression: 'Math.round(x_i / y_i) * y_i' },
 ];
 
 let binopSource = "";
@@ -128,6 +144,7 @@ const cxMapArgs: CxVectorMapMetaFunctionArgs[] = [
     { name: '_cx_v_conj', mapRe: 'x_re_i', mapIm: '-x_im_i' },
     { name: '_cx_v_abs', mapRe: 'Math.sqrt(x_re_i*x_re_i+x_im_i*x_im_i)', mapIm: '0' },
     { name: '_cx_v_clone', mapRe: 'x_re_i', mapIm: 'x_im_i' },
+    { name: '_cx_v_reciprocal', mapPre: 'const d = x_re_i*x_re_i + x_im_i*x_im_i;', mapRe: 'x_re_i / d', mapIm: '-x_im_i / d' },
     { name: '_cx_v_exp', mapPre: 'const e = Math.exp(x_re_i);', mapRe: 'e*Math.cos(x_im_i)', mapIm: 'e*Math.sin(x_im_i)' },
     { name: '_cx_v_log', mapRe: 'Math.log(Math.sqrt(x_re_i*x_re_i+x_im_i*x_im_i))', mapIm: 'Math.atan2(x_im_i, x_re_i)' },
     // Principal square root

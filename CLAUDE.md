@@ -11,9 +11,10 @@ The original numeric.js is at `../numeric` relative to this project. Its documen
 - `index.ts` — Public entry point. Exports `Vector`, `Matrix`, `SparseMatrix`, `linalg`, `sparse`, `optimize`, `interpolate`, `ode`, `complex`/`isComplex` (+ `Complex`/`Scalar` types), and utility functions.
 - `src/complex.ts` — `Complex = {re, im}` scalar type, `Scalar = number | Complex`, `complex()`, `isComplex()`.
 - `src/base.ts` — `TensorBase` class: base for all tensors, stores `_re`, `_im`, `_shape`.
-- `src/vector.ts` — `Vector` class (1D tensor).
-- `src/matrix.ts` — `Matrix` class (2D tensor).
-- `src/utils.ts` — Array utilities: `dim`, `rep`, `linspace`, `random`, `identity`, `diag`, `getDiag`, `clone`, `transpose`, `negtranspose`, `same`, `tensor`, `getBlock`, `getBlock1D`.
+- `src/vector.ts` — `Vector` class (1D tensor): `clone`, `promoteToComplex` (in place), `get`/`set`, `getBlock`/`setBlock`, `Vector.zeros`.
+- `src/matrix.ts` — `Matrix` class (2D tensor): `clone`, `promoteToComplex`, `get`/`set`, `getRow`/`setRow`, `getCol`/`setCol`, `getRows`/`setRows`, `getBlock`/`setBlock`, `getRange`, `getDiag`, `transpose`, `transjugate`; statics `zeros`, `identity`, `diag`, `block`. All complex-aware.
+- `src/tensorutils.ts` — Public utility functions (`clone`, `transpose`, `negtranspose`, `transjugate`, `getDiag`, `getBlock`, `getBlock1D`, `setBlock`, `getRange`, `blockMatrix`, `tensor`, `same`) that accept raw arrays (raw result) or `Vector`/`Matrix` (tensor result, complex-aware). `index.ts` exports these; internal code uses the raw versions in `src/utils.ts`.
+- `src/utils.ts` — Raw array utilities (real `number[]`/`number[][]` only): `dim`, `rep`, `linspace`, `random`, `identity`, `diag`, `getDiag`, `clone`, `transpose`, `negtranspose`, `same`, `tensor`, `getBlock`, `getBlock1D`, `setBlock`, `getRange`, `blockMatrix`.
 - `src/core/` — Low-level generated functions and dispatch:
   - `reducers.ts` — Generated vector reducers (sum, prod, max, min, norms).
   - `maps.ts` — Generated unary element-wise ops (sqrt, abs, sin, cos, neg, ceil, floor, round, etc.).
@@ -198,6 +199,13 @@ Following the original numeric.js:
 - **V8 allocation sites:** never allocate both arrays-of-rows and rows of numbers at the same `Array(n)` line (e.g. one recursive helper). V8 tracks element kinds per allocation site, and rows from such a site get boxed (generic) elements, making numeric loops several times slower on Node (Bun is unaffected). See `cloneRow` in `src/utils.ts`.
 - **Hot dispatch:** public element-wise ops use `fastUnary`/`fastBinary` (`src/core/utils.ts`), which resolve kernels once and call them directly for real inputs; keep new public element-wise functions on this path.
 
+## Tensor conventions
+
+- Constructors (`new Vector(re, im)`, `new Matrix(re, im)`) wrap the given arrays **without copying**, and `.real`/`.imag` expose the internal arrays. Use `clone()` for an independent copy.
+- Block/slice ranges are half-open (`[r0, r1)`, like `Array.slice`); numeric.js used inclusive ends.
+- Writing complex values into a real tensor (`set`, `setRow`, `setBlock`, in-place ops) **throws**; promotion is explicit via `promoteToComplex()`.
+- Logical ops (`and`, `or`, `not`) return booleans and accept boolean arrays (numeric.js's `and`/`or` returned an operand, like JS `&&`/`||`). Bitwise ops (`band`, `bor`, `bxor`, `bnot`, `lshift`, `rshift`, `rrshift`) follow JS 32-bit integer semantics.
+
 ## Public API Pattern
 
 Linalg functions should accept both raw arrays (`number[]`, `number[][]`) and TensorBase objects (`Vector`, `Matrix`), and return `Vector`/`Matrix` instances. This mirrors how numeric.js's `T` class wraps complex data.
@@ -239,7 +247,7 @@ A cross-language validation framework that compares numeric-2 results against Nu
 - `tests/oracle.py` — Python script that accepts NDJSON on stdin, generates seeded random data with NumPy, computes reference results, and outputs NDJSON responses with both inputs and expected outputs.
 - `tests/runner.ts` — Bun helper that spawns `uv run python tests/oracle.py`, sends requests, and parses responses. Provides `oracle()`, `assertClose()`, `assertClose2D()`, `assertScalarClose()`.
 - `tests/pyproject.toml` — uv project config (numpy and scipy; scipy provides LP/QP references via `linprog` and SLSQP). Run `cd tests && uv sync` to install.
-- Test files: `unary.test.ts`, `binary.test.ts`, `reducers.test.ts`, `dot.test.ts`, `linalg.test.ts`, `complex.test.ts`, `eig.test.ts`, `utilities.test.ts`, `complex-dispatch.test.ts`, `elementwise.test.ts` (public API on vectors and matrices), `cx-linalg.test.ts`, `fft.test.ts`, `sparse.test.ts` (vs scipy.sparse and spsolve; matrices sent as triplets), `ode.test.ts` (vs analytic solutions and scipy DOP853 at 1e-13), `spline.test.ts` (vs scipy CubicSpline: values, derivatives, roots), `optimize.test.ts` (LP vs linprog, QP vs SLSQP, uncmin on known minimizers), `svd.test.ts` (singular values vs NumPy, plus reconstruction and orthonormality, since singular vectors are sign-ambiguous)
+- Test files: `unary.test.ts`, `binary.test.ts`, `reducers.test.ts`, `dot.test.ts`, `linalg.test.ts`, `complex.test.ts`, `eig.test.ts`, `utilities.test.ts`, `complex-dispatch.test.ts`, `elementwise.test.ts` (public API on vectors and matrices), `cx-linalg.test.ts`, `fft.test.ts`, `sparse.test.ts` (vs scipy.sparse and spsolve; matrices sent as triplets), `logic.test.ts` (logical/bitwise/trunc/reciprocal vs NumPy), `ode.test.ts` (vs analytic solutions and scipy DOP853 at 1e-13), `spline.test.ts` (vs scipy CubicSpline: values, derivatives, roots), `optimize.test.ts` (LP vs linprog, QP vs SLSQP, uncmin on known minimizers), `svd.test.ts` (singular values vs NumPy, plus reconstruction and orthonormality, since singular vectors are sign-ambiguous)
 - `cx-linalg.test.ts` covers complex solve/LU/inv/det/dot and complex element-wise ops (incl. complex scalar operands).
 - Element-wise oracle ops accept `"shape": [m, n]` instead of `"n"` to produce matrix inputs; `cx_*` binary ops accept `real_x`/`real_y` to make one operand purely real. Oracle exceptions come back as `{"error": ...}` and the runner raises them as test failures.
 

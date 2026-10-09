@@ -38,6 +38,17 @@ export function _cx_v_clone(x_re: number[], x_im: number[], n: number): [number[
     return [ans_re, ans_im];
 }
 
+export function _cx_v_reciprocal(x_re: number[], x_im: number[], n: number): [number[], number[]] {
+    let i = n-1;
+    const ans_re = Array(n), ans_im = Array(n);
+    for (; i >= 0; i -= 1) {
+        const d = x_re[i]*x_re[i] + x_im[i]*x_im[i];
+        ans_re[i] = x_re[i] / d;
+        ans_im[i] = -x_im[i] / d;
+    }
+    return [ans_re, ans_im];
+}
+
 export function _cx_v_exp(x_re: number[], x_im: number[], n: number): [number[], number[]] {
     let i = n-1;
     const ans_re = Array(n), ans_im = Array(n);
