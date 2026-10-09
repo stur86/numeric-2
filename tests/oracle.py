@@ -479,6 +479,23 @@ def handle_spline(req: dict) -> dict:
     return out
 
 
+ODE_PROBLEMS = {
+    # name: (f, y0, x1)
+    "lotka_volterra": (lambda t, y: [1.5 * y[0] - y[0] * y[1], -3 * y[1] + y[0] * y[1]], [10.0, 5.0], 10.0),
+    "van_der_pol": (lambda t, y: [y[1], (1 - y[0] ** 2) * y[1] - y[0]], [2.0, 0.0], 15.0),
+    "pendulum": (lambda t, y: [y[1], -np.sin(y[0])], [2.5, 0.0], 20.0),
+}
+
+
+def handle_ode(req: dict) -> dict:
+    """Reference solution from scipy's DOP853 at very tight tolerances."""
+    from scipy.integrate import solve_ivp
+    f, y0, x1 = ODE_PROBLEMS[req["problem"]]
+    ts = np.linspace(0, x1, 57)
+    res = solve_ivp(f, (0, x1), y0, method="DOP853", rtol=1e-13, atol=1e-13, dense_output=True)
+    return {"inputs": {"y0": y0, "x1": x1, "ts": ts.tolist()}, "expected": res.sol(ts).T.tolist()}
+
+
 def handle_cx_dot_VV(req: dict) -> dict:
     rng = np.random.default_rng(req["seed"])
     n = req["n"]
@@ -569,6 +586,8 @@ def process(req: dict) -> dict:
         return handle_qp(req)
     elif op == "spline":
         return handle_spline(req)
+    elif op == "ode":
+        return handle_ode(req)
     elif op == "getBlock":
         return handle_getBlock(req)
     elif op == "getBlock1D":

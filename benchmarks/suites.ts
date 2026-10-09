@@ -553,6 +553,20 @@ export function buildCases(libs: Libs): Case[] {
             },
         },
 
+        // ODEs (math.js and stdlib have no counterparts)
+        {
+            suite: "ODE", name: "dopri(Lotka-Volterra, 0..10)", sizes: [6, 9, 12], sizeLabel: (k) => `tol 1e-${k}`,
+            setup: (k) => {
+                const f = (t: number, y: number[]) => [1.5 * y[0] - y[0] * y[1], -3 * y[1] + y[0] * y[1]];
+                return { "numeric-2": [f, 10 ** -k], numeric: [f, 10 ** -k] };
+            },
+            run: {
+                "numeric-2": ([f, tol]) => libs.numeric2.ode.dopri(0, 10, [10, 5], f, { tol, maxit: 100000 }).at(10),
+                numeric: ([f, tol], nm) => nm.dopri(0, 10, [10, 5], f, tol, 100000).at(10),
+            },
+            check: (a, b) => close(a, b, 1e-6),
+        },
+
         // Complex
         {
             suite: "Complex", name: "mul x * y", sizes: VEC_SIZES, sizeLabel: vecLabel,
