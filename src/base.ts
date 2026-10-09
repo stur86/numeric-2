@@ -1,3 +1,5 @@
+import { prettyPrint } from "./print";
+
 export type NestedArray<T> = Array<T | NestedArray<T>>;
 
 /**
@@ -58,5 +60,10 @@ export class TensorBase {
   /** Check if the tensor is complex */
   get is_complex() {
     return this._im !== null;
+  }
+
+  /** A readable rendering (see prettyPrint). */
+  toString(): string {
+    return prettyPrint(this);
   }
 }

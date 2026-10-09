@@ -1,0 +1,56 @@
+// Bun Snapshot v1, https://bun.sh/docs/test/snapshots
+
+exports[`VectorBinopMetaFunction - arithmetic add 1`] = `
+"export function _re_v_addVV(x: number[], y: number[], n: number): number[] {
+    let i = n-1,
+        ans = Array(n);
+    for (; i >= 0; i -= 1) {
+        ans[i] = x[i] + y[i];
+    }
+    return ans;
+}"
+`;
+
+exports[`VectorBinopMetaFunction - arithmetic add 2`] = `
+"export function _re_v_addVS(x: number[], y: number, n: number): number[] {
+    let i = n-1,
+        ans = Array(n);
+    for (; i >= 0; i -= 1) {
+        ans[i] = x[i] + y;
+    }
+    return ans;
+}"
+`;
+
+exports[`VectorBinopMetaFunction - arithmetic add 3`] = `
+"export function _re_v_addSV(x: number, y: number[], n: number): number[] {
+    let i = n-1,
+        ans = Array(n);
+    for (; i >= 0; i -= 1) {
+        ans[i] = x + y[i];
+    }
+    return ans;
+}"
+`;
+
+exports[`VectorBinopMetaFunction - math pow 1`] = `
+"export function _re_v_powVV(x: number[], y: number[], n: number): number[] {
+    let i = n-1,
+        ans = Array(n);
+    for (; i >= 0; i -= 1) {
+        ans[i] = Math.pow(x[i], y[i]);
+    }
+    return ans;
+}"
+`;
+
+exports[`VectorBinopMetaFunction - comparison eq 1`] = `
+"export function _re_v_eqVV(x: number[], y: number[], n: number): number[] {
+    let i = n-1,
+        ans = Array(n);
+    for (; i >= 0; i -= 1) {
+        ans[i] = x[i] === y[i];
+    }
+    return ans;
+}"
+`;

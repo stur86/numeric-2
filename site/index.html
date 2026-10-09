@@ -1,0 +1,383 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>numeric-2</title>
+<meta name="description" content="Numerical analysis for JavaScript and TypeScript without eval: linear algebra, complex numbers, sparse matrices, FFT, optimization, ODEs and splines. A TypeScript port of numeric.js, tested against NumPy and SciPy.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+/* Layout: one reading column; hero with live example → features → why → performance → usage → links. */
+:root {
+  --plane: #f6f6f3;
+  --surface: #fcfcfb;
+  --ink: #0b0b0b;
+  --ink-2: #52514e;
+  --muted: #7b7973;
+  --rule: #e1e0d9;
+  --ring: rgba(11, 11, 11, 0.10);
+  --accent: #2a78d6;
+  --code-bg: #f0efea;
+  --font-sans: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --plane: #0d0d0d; --surface: #1a1a19; --ink: #ffffff; --ink-2: #c3c2b7; --muted: #8f8d86;
+    --rule: #2c2c2a; --ring: rgba(255, 255, 255, 0.10); --accent: #6da7ec; --code-bg: #141413;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --plane: #0d0d0d; --surface: #1a1a19; --ink: #ffffff; --ink-2: #c3c2b7; --muted: #8f8d86;
+  --rule: #2c2c2a; --ring: rgba(255, 255, 255, 0.10); --accent: #6da7ec; --code-bg: #141413;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0;
+  background: var(--plane);
+  color: var(--ink);
+  font: 16px/1.6 var(--font-sans);
+  padding-inline: 16px;
+  padding-block: 0 64px;
+}
+a { color: var(--accent); text-underline-offset: 3px; }
+a:focus-visible, button:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 3px; }
+code, pre, .mono { font-family: var(--font-mono); font-size: 0.88em; }
+:not(pre) > code { background: var(--code-bg); padding: 1px 5px; border-radius: 4px; }
+.wrap { max-width: 1080px; margin-inline: auto; }
+
+/* Navigation */
+nav { display: flex; justify-content: space-between; align-items: center; gap: 16px; padding-block: 18px; border-bottom: 1px solid var(--rule); }
+.brand { font: 600 1rem/1 var(--font-mono); color: var(--ink); text-decoration: none; letter-spacing: -0.01em; }
+.links { display: flex; flex-wrap: wrap; gap: 6px 20px; font-size: 0.93rem; }
+.links a { color: var(--ink-2); text-decoration: none; }
+.links a:hover { color: var(--ink); text-decoration: underline; }
+
+/* Hero */
+.hero { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.05fr); gap: 40px; padding-block: 56px 48px; align-items: start; }
+@media (max-width: 860px) { .hero { grid-template-columns: minmax(0, 1fr); gap: 28px; padding-block: 36px; } }
+.eyebrow { font: 500 0.75rem/1 var(--font-mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+h1 { font-size: clamp(2.1rem, 5vw, 3.1rem); line-height: 1.08; letter-spacing: -0.025em; margin: 14px 0 18px; font-weight: 600; text-wrap: balance; }
+h1 .no-eval { font-family: var(--font-mono); font-weight: 500; letter-spacing: -0.04em; }
+.lede { font-size: 1.12rem; color: var(--ink-2); max-width: 36rem; margin: 0 0 26px; }
+.cta { display: flex; flex-wrap: wrap; gap: 10px; }
+.btn { display: inline-flex; align-items: center; gap: 8px; padding: 10px 16px; border-radius: 8px; font-weight: 500; font-size: 0.95rem; text-decoration: none; border: 1px solid var(--ink); }
+.btn.primary { background: var(--ink); color: var(--surface); }
+.btn.secondary { color: var(--ink); background: transparent; border-color: var(--ring); }
+.btn.secondary:hover { border-color: var(--ink-2); }
+
+/* Live example */
+.example { background: var(--surface); border: 1px solid var(--ring); border-radius: 12px; overflow: hidden; min-width: 0; }
+.example-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 10px 14px; border-bottom: 1px solid var(--rule); font-size: 0.8rem; color: var(--muted); }
+.live { display: inline-flex; align-items: center; gap: 6px; }
+.live::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: #0ca30c; }
+.live.off::before { background: var(--muted); }
+pre { margin: 0; padding: 14px 16px; overflow-x: auto; line-height: 1.55; }
+.example pre.src { background: var(--code-bg); }
+.example pre.out { color: var(--ink-2); border-top: 1px solid var(--rule); min-height: 7.5em; }
+.tok-k { color: #8a3ffc; } .tok-s { color: #0c7a43; } .tok-n { color: #b15c00; } .tok-c { color: var(--muted); }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .tok-k { color: #c49cff; } :root:not([data-theme="light"]) .tok-s { color: #62d394; } :root:not([data-theme="light"]) .tok-n { color: #f0a35b; } }
+:root[data-theme="dark"] .tok-k { color: #c49cff; } :root[data-theme="dark"] .tok-s { color: #62d394; } :root[data-theme="dark"] .tok-n { color: #f0a35b; }
+
+/* Sections */
+section { padding-block: 40px; border-top: 1px solid var(--rule); }
+h2 { font-size: 1.5rem; letter-spacing: -0.015em; margin: 0 0 8px; font-weight: 600; text-wrap: balance; }
+.section-lede { color: var(--ink-2); margin: 0 0 26px; max-width: 44rem; }
+
+.features { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr)); gap: 14px; }
+.feature { background: var(--surface); border: 1px solid var(--ring); border-radius: 10px; padding: 18px 18px 16px; min-width: 0; }
+.feature h3 { margin: 0 0 6px; font-size: 1.02rem; font-weight: 600; }
+.feature p { margin: 0 0 10px; color: var(--ink-2); font-size: 0.93rem; }
+.feature .api { font-family: var(--font-mono); font-size: 0.78rem; color: var(--muted); line-height: 1.5; }
+
+.why { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 230px), 1fr)); gap: 24px 32px; }
+.why h3 { margin: 0 0 6px; font-size: 1rem; font-weight: 600; }
+.why p { margin: 0; color: var(--ink-2); font-size: 0.93rem; }
+
+.perf { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr)); gap: 14px; }
+.perf-card { background: var(--surface); border: 1px solid var(--ring); border-radius: 10px; padding: 18px; }
+.perf-card h3 { margin: 0 0 10px; font-size: 0.95rem; font-weight: 600; }
+.perf-row { display: grid; grid-template-columns: 1fr auto; gap: 4px 12px; align-items: baseline; padding-block: 4px; border-top: 1px solid var(--rule); font-size: 0.92rem; }
+.perf-row:first-of-type { border-top: 0; }
+.perf-row .fig { font-family: var(--font-mono); font-weight: 500; font-variant-numeric: tabular-nums; }
+.perf-row .cnt { grid-column: 1 / -1; color: var(--muted); font-size: 0.78rem; margin-top: -4px; }
+.perf-note { color: var(--muted); font-size: 0.85rem; margin-top: 14px; }
+
+.usage { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr)); gap: 14px; }
+.usage-card { background: var(--surface); border: 1px solid var(--ring); border-radius: 10px; overflow: hidden; min-width: 0; }
+.usage-card h3 { margin: 0; padding: 12px 16px; font-size: 0.95rem; font-weight: 600; border-bottom: 1px solid var(--rule); }
+.usage-card pre { background: var(--code-bg); font-size: 0.82rem; }
+.usage-card p { margin: 0; padding: 10px 16px 14px; font-size: 0.88rem; color: var(--ink-2); }
+
+.more { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr)); gap: 14px; }
+.more a { display: block; background: var(--surface); border: 1px solid var(--ring); border-radius: 10px; padding: 18px; text-decoration: none; color: var(--ink); }
+.more a:hover { border-color: var(--ink-2); }
+.more strong { display: block; font-size: 1.02rem; margin-bottom: 4px; }
+.more span { color: var(--ink-2); font-size: 0.92rem; }
+
+footer { border-top: 1px solid var(--rule); padding-top: 22px; color: var(--muted); font-size: 0.85rem; display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px 24px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <nav aria-label="Site">
+    <a class="brand" href="./">numeric-2</a>
+    <div class="links">
+      <a href="docs/">API reference</a>
+      <a href="benchmarks/">Benchmarks</a>
+      <a href="https://github.com/stur86/numeric-2">GitHub</a>
+    </div>
+  </nav>
+
+  <header class="hero">
+    <div>
+      <span class="eyebrow">TypeScript · numeric.js, rebuilt</span>
+      <h1>Numerical analysis for JavaScript, with no&nbsp;<span class="no-eval">eval</span>.</h1>
+      <p class="lede">numeric-2 brings numeric.js's linear algebra, complex numbers, sparse matrices, FFT, optimization, ODE solvers and splines to modern TypeScript. It never generates code at runtime, so it also runs on pages and platforms that forbid <code>eval</code>.</p>
+      <div class="cta">
+        <a class="btn primary" href="docs/">Read the API reference</a>
+        <a class="btn secondary" href="benchmarks/">See the benchmarks</a>
+      </div>
+    </div>
+
+    <figure class="example" aria-label="Example, run live in this page" style="margin:0">
+      <div class="example-head">
+        <span>example.ts</span>
+        <span class="live off" id="live-status">running…</span>
+      </div>
+<pre class="src" id="example-src"></pre>
+<pre class="out" id="example-out" aria-live="polite">Loading the library…</pre>
+    </figure>
+  </header>
+
+  <section aria-labelledby="features-title">
+    <h2 id="features-title">What it covers</h2>
+    <p class="section-lede">Functional parity with numeric.js, reorganised into typed modules. Every function accepts plain arrays or numeric-2's tensor classes, and complex values work throughout.</p>
+    <div class="features">
+      <article class="feature">
+        <h3>Vectors, matrices and tensors</h3>
+        <p>Real or complex data in <code>Vector</code>, <code>Matrix</code> and N-dimensional <code>Tensor</code> classes, with element access, blocks and in-place operations.</p>
+        <div class="api">add · mul · exp · sqrt · sum · norm2 · iadd · getBlock · transjugate</div>
+      </article>
+      <article class="feature">
+        <h3>Linear algebra</h3>
+        <p>Products, solving, inversion, determinants and decompositions, for real and complex matrices.</p>
+        <div class="api">dot · solve · LU · inv · det · eig · svd</div>
+      </article>
+      <article class="feature">
+        <h3>Sparse matrices</h3>
+        <p>Compressed-column storage with sparse arithmetic, products and an LU factorization for solving large sparse systems.</p>
+        <div class="api">SparseMatrix · sparse.dot · sparse.lu · sparse.solve</div>
+      </article>
+      <article class="feature">
+        <h3>Signal processing</h3>
+        <p>Fast Fourier transforms of any length, not just powers of two, and linear convolution with NumPy's modes.</p>
+        <div class="api">fft · ifft · convolve</div>
+      </article>
+      <article class="feature">
+        <h3>Optimization</h3>
+        <p>Unconstrained minimization with BFGS, plus linear and quadratic programming.</p>
+        <div class="api">optimize.uncmin · gradient · solveLP · solveQP</div>
+      </article>
+      <article class="feature">
+        <h3>ODEs and interpolation</h3>
+        <p>Dormand–Prince integration with dense output and event detection, and cubic splines with derivatives and roots.</p>
+        <div class="api">ode.dopri · interpolate.spline · Spline.at · Spline.roots</div>
+      </article>
+      <article class="feature">
+        <h3>Random numbers</h3>
+        <p>A seeded, NumPy-style generator for reproducible uniform, normal and integer samples of any shape.</p>
+        <div class="api">defaultRng · uniform · normal · integers</div>
+      </article>
+      <article class="feature">
+        <h3>Readable output</h3>
+        <p>Every tensor, sparse matrix and result object prints as aligned columns, with long arrays summarized.</p>
+        <div class="api">prettyPrint · toString</div>
+      </article>
+    </div>
+  </section>
+
+  <section aria-labelledby="why-title">
+    <h2 id="why-title">Why a rewrite</h2>
+    <p class="section-lede">numeric.js is fast and broad, but it builds most of its functions with <code>new Function</code> while it loads.</p>
+    <div class="why">
+      <div>
+        <h3>Runs under a strict CSP</h3>
+        <p>Pages whose Content Security Policy forbids <code>unsafe-eval</code> cannot load numeric.js at all. numeric-2 generates its kernels when the library is built, so it needs no runtime code generation.</p>
+      </div>
+      <div>
+        <h3>Typed throughout</h3>
+        <p>Written in TypeScript. Return types follow the arguments: a product of two matrices is typed <code>Matrix</code>, and a sample of shape <code>[3, 4]</code> is typed <code>Matrix</code>.</p>
+      </div>
+      <div>
+        <h3>Checked against NumPy and SciPy</h3>
+        <p>Over 1,500 tests, most of them comparing results with NumPy and SciPy on random inputs, from element-wise maths to eigenvalues, sparse solves and quadratic programs.</p>
+      </div>
+      <div>
+        <h3>numeric.js bugs fixed</h3>
+        <p>Among others: <code>solveQP</code> returning suboptimal or infeasible points, numerical gradients failing above 20 variables, spline roots going missing, and sparse matrices losing empty rows.</p>
+      </div>
+    </div>
+  </section>
+
+  <section aria-labelledby="perf-title">
+    <h2 id="perf-title">How fast is it?</h2>
+    <p class="section-lede">numeric-2's speed relative to each library, as a geometric mean over the benchmark cases both support (1× means equal; above 1× means numeric-2 is faster).</p>
+    <div class="perf" id="perf">
+      <p class="perf-note">Loading the latest benchmark results…</p>
+    </div>
+    <p class="perf-note" id="perf-note">These are indications, not absolute measurements: they depend on the machine and the runtime. <a href="benchmarks/">Open the benchmarks</a> for every case, the spread of each measurement, the caveats, and a run in your own browser.</p>
+  </section>
+
+  <section aria-labelledby="usage-title">
+    <h2 id="usage-title">Using it</h2>
+    <p class="section-lede">The library is a single file with no dependencies. This site hosts the current build.</p>
+    <div class="usage">
+      <div class="usage-card">
+        <h3>As an ES module</h3>
+<pre><span class="tok-k">import</span> { Matrix, linalg } <span class="tok-k">from</span>
+  <span class="tok-s" id="esm-url">"https://stur86.github.io/numeric-2/dist/numeric-2.min.js"</span>;</pre>
+        <p>Works in browsers, Node, Bun and Deno.</p>
+      </div>
+      <div class="usage-card">
+        <h3>With a script tag</h3>
+<pre>&lt;script src=<span class="tok-s" id="umd-url">"https://stur86.github.io/numeric-2/dist/numeric-2.umd.min.js"</span>&gt;&lt;/script&gt;
+&lt;script&gt; <span class="tok-k">const</span> { linalg } = Numeric; &lt;/script&gt;</pre>
+        <p>Defines a global <code>Numeric</code>.</p>
+      </div>
+      <div class="usage-card">
+        <h3>From source</h3>
+<pre>git clone https://github.com/stur86/numeric-2
+cd numeric-2 &amp;&amp; bun install
+bun run build    <span class="tok-c"># → dist/</span></pre>
+        <p>Builds ESM and UMD bundles, plain and minified.</p>
+      </div>
+    </div>
+  </section>
+
+  <section aria-labelledby="more-title">
+    <h2 id="more-title">Go further</h2>
+    <div class="more" style="margin-top:18px">
+      <a href="docs/"><strong>API reference</strong><span>Every class and function, generated from the source.</span></a>
+      <a href="benchmarks/"><strong>Benchmarks</strong><span>numeric-2 against numeric.js, math.js and stdlib on Bun, Node and your browser.</span></a>
+      <a href="https://github.com/stur86/numeric-2"><strong>Source code</strong><span>Issues, history and the test suite on GitHub.</span></a>
+    </div>
+  </section>
+
+  <footer>
+    <span>MIT License. Based on <a href="https://github.com/sloisel/numeric">numeric.js</a> by Sébastien Loisel.</span>
+    <span id="build-info"></span>
+  </footer>
+</div>
+
+<script type="module">
+// The example shown in the page; it is also what runs below, against this site's build.
+const SOURCE = `import { Matrix, linalg, defaultRng } from "numeric-2";
+
+const A = new Matrix([[4, 1], [2, 3]]);
+const x = linalg.solve(A, [1, 2]);
+const { lambda } = linalg.eig(A);
+const noise = defaultRng(42).normal(0, 1, [2, 3]);
+const spectrum = linalg.fft([1, 0, -1, 0]);
+
+console.log(String(x));        // solution of A x = b
+console.log(String(lambda));   // eigenvalues
+console.log(String(noise));    // seeded normal samples
+console.log(String(spectrum)); // complex FFT`;
+
+// Minimal highlighting for the example (keywords, strings, numbers, comments)
+const esc = (s) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+function highlight(src) {
+  return src.split("\n").map((line) => {
+    const [code, ...rest] = line.split("//");
+    let h = esc(code)
+      .replace(/("[^"]*")/g, '<span class="tok-s">$1</span>')
+      .replace(/\b(import|from|const)\b/g, '<span class="tok-k">$1</span>')
+      .replace(/(?<![\w"])(-?\d+(?:\.\d+)?)(?![\w"])/g, '<span class="tok-n">$1</span>');
+    if (rest.length) h += `<span class="tok-c">//${esc(rest.join("//"))}</span>`;
+    return h;
+  }).join("\n");
+}
+document.getElementById("example-src").innerHTML = highlight(SOURCE);
+
+// Point the usage snippets at this deployment
+const base = new URL("./", location.href).href;
+document.getElementById("esm-url").textContent = `"${base}dist/numeric-2.min.js"`;
+document.getElementById("umd-url").textContent = `"${base}dist/numeric-2.umd.min.js"`;
+
+// Run the example against this site's build
+const out = document.getElementById("example-out");
+const status = document.getElementById("live-status");
+try {
+  const { Matrix, linalg, defaultRng } = await import("./dist/numeric-2.min.js");
+  const A = new Matrix([[4, 1], [2, 3]]);
+  const x = linalg.solve(A, [1, 2]);
+  const { lambda } = linalg.eig(A);
+  const noise = defaultRng(42).normal(0, 1, [2, 3]);
+  const spectrum = linalg.fft([1, 0, -1, 0]);
+  out.textContent = [x, lambda, noise, spectrum].map(String).join("\n");
+  status.textContent = "output computed in this page";
+  status.classList.remove("off");
+} catch (e) {
+  out.textContent = `The library could not be loaded here (${e.message}).`;
+  status.textContent = "not run";
+}
+
+// Headline benchmark figures, from the benchmark results deployed with this site
+const TITLE = { numeric: "numeric.js", mathjs: "math.js", stdlib: "stdlib" };
+const RUNTIME = { bun: "Bun (server)", node: "Node (server)" };
+try {
+  const res = await fetch("benchmarks/results.json");
+  if (!res.ok) throw new Error(res.statusText);
+  const { runs } = await res.json();
+  const host = document.getElementById("perf");
+  host.replaceChildren();
+  for (const run of runs) {
+    // Median times per case, per library
+    const cells = new Map();
+    for (const m of run.results) {
+      if (m.median === null || !Number.isFinite(m.median)) continue;
+      const k = `${m.suite}|${m.case}|${m.size}`;
+      if (!cells.has(k)) cells.set(k, {});
+      cells.get(k)[m.lib] = m.median;
+    }
+    const card = document.createElement("div");
+    card.className = "perf-card";
+    const h = document.createElement("h3");
+    h.textContent = `${RUNTIME[run.id] ?? run.id} · ${run.env.runtime}`;
+    card.append(h);
+    for (const other of ["numeric", "mathjs", "stdlib"]) {
+      const ratios = [...cells.values()].filter((c) => c[other] && c["numeric-2"]).map((c) => c[other] / c["numeric-2"]);
+      if (!ratios.length) continue;
+      const g = Math.exp(ratios.reduce((s, r) => s + Math.log(r), 0) / ratios.length);
+      const row = document.createElement("div");
+      row.className = "perf-row";
+      const label = document.createElement("span");
+      label.textContent = `vs ${TITLE[other]}`;
+      const fig = document.createElement("span");
+      fig.className = "fig";
+      fig.textContent = `${g >= 10 ? g.toFixed(0) : g.toFixed(2)}×`;
+      const cnt = document.createElement("span");
+      cnt.className = "cnt";
+      cnt.textContent = `${ratios.length} shared cases`;
+      row.append(label, fig, cnt);
+      card.append(row);
+    }
+    host.append(card);
+  }
+  const dates = runs.map((r) => new Date(r.env.date)).sort((a, b) => b - a);
+  if (dates.length) document.getElementById("build-info").textContent = `Benchmarks run ${dates[0].toLocaleDateString(undefined, { year: "numeric", month: "long", day: "numeric" })}.`;
+} catch {
+  document.getElementById("perf").innerHTML = '<p class="perf-note">Benchmark results are not available in this build.</p>';
+}
+</script>
+</body>
+</html>

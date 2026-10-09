@@ -2,6 +2,19 @@ import { VectorReducerMetaFunction } from "./reducer";
 import type { VectorReducerMetaFunctionArgs } from "./reducer";
 import { VectorMapMetaFunction } from "./map";
 import type { VectorMapMetaFunctionArgs } from "./map";
+import { VectorBinopMetaFunction } from "./binop";
+import type { VectorBinopMetaFunctionArgs } from "./binop";
+import { CxVectorMapMetaFunction } from "./cx.map";
+import type { CxVectorMapMetaFunctionArgs } from "./cx.map";
+import { CxVectorBinopMetaFunction } from "./cx.binop";
+import type { CxVectorBinopMetaFunctionArgs } from "./cx.binop";
+import { CxVectorReducerMetaFunction } from "./cx.reducer";
+import type { CxVectorReducerMetaFunctionArgs } from "./cx.reducer";
+import { CxVectorCxReducerMetaFunction } from "./cx.cxreducer";
+import { SparseBinopMetaFunction } from "./sparse.binop";
+import { InPlaceMapMetaFunction, InPlaceBinopMetaFunction, CxInPlaceMapMetaFunction, CxInPlaceBinopMetaFunction } from "./inplace";
+import type { SparseBinopMetaFunctionArgs } from "./sparse.binop";
+import type { CxVectorCxReducerMetaFunctionArgs } from "./cx.cxreducer";
 
 
 /**
@@ -56,6 +69,18 @@ const mapArgs: VectorMapMetaFunctionArgs[] = [
     { name: '_re_v_asin', mapElement: 'Math.asin(x_i)' },
     { name: '_re_v_acos', mapElement: 'Math.acos(x_i)' },
     { name: '_re_v_atan', mapElement: 'Math.atan(x_i)' },
+    { name: '_re_v_neg', mapElement: '-x_i' },
+    { name: '_re_v_ceil', mapElement: 'Math.ceil(x_i)' },
+    { name: '_re_v_floor', mapElement: 'Math.floor(x_i)' },
+    { name: '_re_v_round', mapElement: 'Math.round(x_i)' },
+    { name: '_re_v_isNaN', mapElement: 'Number.isNaN(x_i)', returnType: 'boolean' },
+    { name: '_re_v_isFinite', mapElement: 'Number.isFinite(x_i)', returnType: 'boolean' },
+    { name: '_re_v_clone', mapElement: 'x_i' },
+    { name: '_re_v_conj', mapElement: 'x_i' },
+    { name: '_re_v_reciprocal', mapElement: '1 / x_i' },
+    // Logical and bitwise
+    { name: '_re_v_not', mapElement: '!x_i', returnType: 'boolean' },
+    { name: '_re_v_bnot', mapElement: '~x_i' },
 ];
 
 let mapSource = "";
@@ -65,4 +90,190 @@ for (const mArgs of mapArgs) {
     mapSource += map.compileSource() + '\n\n';
 }
 Bun.write(mapFile, mapSource);
+console.log("_____\n");
+
+// Binary operations
+const binopFile = targetDir + "binops.ts";
+console.log(`Generating binary ops in ${binopFile}:`);
+const binopArgs: VectorBinopMetaFunctionArgs[] = [
+    // Arithmetic
+    { name: 'add', expression: 'x_i + y_i' },
+    { name: 'sub', expression: 'x_i - y_i' },
+    { name: 'mul', expression: 'x_i * y_i' },
+    { name: 'div', expression: 'x_i / y_i' },
+    { name: 'mod', expression: 'x_i % y_i' },
+    // Math
+    { name: 'pow', expression: 'Math.pow(x_i, y_i)' },
+    { name: 'atan2', expression: 'Math.atan2(x_i, y_i)' },
+    { name: 'max', expression: 'Math.max(x_i, y_i)' },
+    { name: 'min', expression: 'Math.min(x_i, y_i)' },
+    // Comparison
+    { name: 'eq', expression: 'x_i === y_i' },
+    { name: 'neq', expression: 'x_i !== y_i' },
+    { name: 'lt', expression: 'x_i < y_i' },
+    { name: 'gt', expression: 'x_i > y_i' },
+    { name: 'leq', expression: 'x_i <= y_i' },
+    { name: 'geq', expression: 'x_i >= y_i' },
+    // Logical (boolean results; operands may be numbers or booleans)
+    { name: 'and', expression: '!!x_i && !!y_i', returnType: 'boolean' },
+    { name: 'or', expression: '!!x_i || !!y_i', returnType: 'boolean' },
+    // Bitwise (operands converted to 32-bit integers, as in JavaScript)
+    { name: 'band', expression: 'x_i & y_i' },
+    { name: 'bor', expression: 'x_i | y_i' },
+    { name: 'bxor', expression: 'x_i ^ y_i' },
+    { name: 'lshift', expression: 'x_i << y_i' },
+    { name: 'rshift', expression: 'x_i >> y_i' },
+    { name: 'rrshift', expression: 'x_i >>> y_i' },
+    // Round x to a multiple of y
+    { name: 'trunc', expression: 'Math.round(x_i / y_i) * y_i' },
+];
+
+let binopSource = "";
+for (const bArgs of binopArgs) {
+    const binop = new VectorBinopMetaFunction(bArgs);
+    console.log(`  ${binop.name} (VV, VS, SV)`);
+    binopSource += binop.compileAllSource() + '\n\n';
+}
+Bun.write(binopFile, binopSource);
+console.log("_____\n");
+
+// Complex maps
+const cxMapFile = targetDir + "cx.maps.ts";
+console.log(`Generating complex maps in ${cxMapFile}:`);
+const cxMapArgs: CxVectorMapMetaFunctionArgs[] = [
+    { name: '_cx_v_neg', mapRe: '-x_re_i', mapIm: '-x_im_i' },
+    { name: '_cx_v_conj', mapRe: 'x_re_i', mapIm: '-x_im_i' },
+    { name: '_cx_v_abs', mapRe: 'Math.sqrt(x_re_i*x_re_i+x_im_i*x_im_i)', mapIm: '0' },
+    { name: '_cx_v_clone', mapRe: 'x_re_i', mapIm: 'x_im_i' },
+    { name: '_cx_v_reciprocal', mapPre: 'const d = x_re_i*x_re_i + x_im_i*x_im_i;', mapRe: 'x_re_i / d', mapIm: '-x_im_i / d' },
+    { name: '_cx_v_exp', mapPre: 'const e = Math.exp(x_re_i);', mapRe: 'e*Math.cos(x_im_i)', mapIm: 'e*Math.sin(x_im_i)' },
+    { name: '_cx_v_log', mapRe: 'Math.log(Math.sqrt(x_re_i*x_re_i+x_im_i*x_im_i))', mapIm: 'Math.atan2(x_im_i, x_re_i)' },
+    // Principal square root
+    { name: '_cx_v_sqrt', mapPre: 'const r = Math.sqrt(x_re_i*x_re_i+x_im_i*x_im_i);', mapRe: 'Math.sqrt((r+x_re_i)/2)', mapIm: '(x_im_i < 0 ? -1 : 1)*Math.sqrt((r-x_re_i)/2)' },
+    { name: '_cx_v_sin', mapRe: 'Math.sin(x_re_i)*Math.cosh(x_im_i)', mapIm: 'Math.cos(x_re_i)*Math.sinh(x_im_i)' },
+    { name: '_cx_v_cos', mapRe: 'Math.cos(x_re_i)*Math.cosh(x_im_i)', mapIm: '-Math.sin(x_re_i)*Math.sinh(x_im_i)' },
+];
+
+let cxMapSource = "";
+for (const mArgs of cxMapArgs) {
+    const map = new CxVectorMapMetaFunction(mArgs);
+    console.log(`  ${map.name}`);
+    cxMapSource += map.compileSource() + '\n\n';
+}
+Bun.write(cxMapFile, cxMapSource);
+console.log("_____\n");
+
+// Complex binary operations
+const cxBinopFile = targetDir + "cx.binops.ts";
+console.log(`Generating complex binary ops in ${cxBinopFile}:`);
+const cxBinopArgs: CxVectorBinopMetaFunctionArgs[] = [
+    { name: 'add', expressionRe: 'x_re_i + y_re_i', expressionIm: 'x_im_i + y_im_i' },
+    { name: 'sub', expressionRe: 'x_re_i - y_re_i', expressionIm: 'x_im_i - y_im_i' },
+    { name: 'mul', expressionRe: 'x_re_i*y_re_i - x_im_i*y_im_i', expressionIm: 'x_re_i*y_im_i + x_im_i*y_re_i' },
+    { name: 'div', expressionRe: '(x_re_i*y_re_i+x_im_i*y_im_i)/(y_re_i*y_re_i+y_im_i*y_im_i)', expressionIm: '(x_im_i*y_re_i-x_re_i*y_im_i)/(y_re_i*y_re_i+y_im_i*y_im_i)' },
+    // Boolean-valued comparisons (complex numbers are unordered: only eq/neq)
+    { name: 'eq', expression: 'x_re_i === y_re_i && x_im_i === y_im_i' },
+    { name: 'neq', expression: 'x_re_i !== y_re_i || x_im_i !== y_im_i' },
+];
+
+let cxBinopSource = "";
+for (const bArgs of cxBinopArgs) {
+    const binop = new CxVectorBinopMetaFunction(bArgs);
+    console.log(`  ${binop.name} (VV, VS, SV)`);
+    cxBinopSource += binop.compileAllSource() + '\n\n';
+}
+Bun.write(cxBinopFile, cxBinopSource);
+console.log("_____\n");
+
+// Complex reducers
+const cxReducerFile = targetDir + "cx.reducers.ts";
+console.log(`Generating complex reducers in ${cxReducerFile}:`);
+const cxReducerArgs: CxVectorReducerMetaFunctionArgs[] = [
+    { name: '_cx_v_norm2', reduceElement: 'x_re_i*x_re_i+x_im_i*x_im_i', reduceOperator: '+=', resultTransform: 'Math.sqrt(ans)' },
+    { name: '_cx_v_norm2squared', reduceElement: 'x_re_i*x_re_i+x_im_i*x_im_i', reduceOperator: '+=' },
+    { name: '_cx_v_norm1', reduceElement: 'Math.sqrt(x_re_i*x_re_i+x_im_i*x_im_i)', reduceOperator: '+=' },
+    { name: '_cx_v_normInf', reduceElement: 'Math.max(ans, Math.sqrt(x_re_i*x_re_i+x_im_i*x_im_i))', reduceOperator: '=', initElement: 'Math.sqrt(x_re_i*x_re_i+x_im_i*x_im_i)' },
+];
+
+let cxReducerSource = "";
+for (const rArgs of cxReducerArgs) {
+    const reducer = new CxVectorReducerMetaFunction(rArgs);
+    console.log(`  ${reducer.name}`);
+    cxReducerSource += reducer.compileSource() + '\n\n';
+}
+Bun.write(cxReducerFile, cxReducerSource);
+console.log("_____\n");
+
+// Complex reducers with a complex result
+const cxCxReducerFile = targetDir + "cx.cxreducers.ts";
+console.log(`Generating complex-valued reducers in ${cxCxReducerFile}:`);
+const cxCxReducerArgs: CxVectorCxReducerMetaFunctionArgs[] = [
+    { name: '_cx_v_sum', reduceRe: 'ans_re + x_re_i', reduceIm: 'ans_im + x_im_i' },
+    { name: '_cx_v_prod', reduceRe: 'ans_re*x_re_i - ans_im*x_im_i', reduceIm: 'ans_re*x_im_i + ans_im*x_re_i' },
+];
+
+let cxCxReducerSource = "";
+for (const rArgs of cxCxReducerArgs) {
+    const reducer = new CxVectorCxReducerMetaFunction(rArgs);
+    console.log(`  ${reducer.name}`);
+    cxCxReducerSource += reducer.compileSource() + '\n\n';
+}
+Bun.write(cxCxReducerFile, cxCxReducerSource);
+console.log("_____\n");
+
+// Sparse (CCS) element-wise binary ops; only ops with op(0, 0) = 0
+const sparseBinopFile = targetDir + "sparse.binops.ts";
+console.log(`Generating sparse binary ops in ${sparseBinopFile}:`);
+const sparseBinopArgs: SparseBinopMetaFunctionArgs[] = [
+    { name: 'add', expression: 'x_i + y_i' },
+    { name: 'sub', expression: 'x_i - y_i' },
+    { name: 'mul', expression: 'x_i * y_i' },
+];
+
+let sparseBinopSource = "";
+for (const bArgs of sparseBinopArgs) {
+    const binop = new SparseBinopMetaFunction(bArgs);
+    console.log(`  _re_s_${binop.name}SS`);
+    sparseBinopSource += binop.compileSource() + '\n\n';
+}
+Bun.write(sparseBinopFile, sparseBinopSource);
+console.log("_____\n");
+
+// In-place variants (write into the first argument), reusing the expressions above
+const inplaceFile = targetDir + "inplace.ts";
+console.log(`Generating in-place kernels in ${inplaceFile}:`);
+const findMap = (n: string) => mapArgs.find((a) => a.name === `_re_v_${n}`)!;
+const findBinop = (n: string) => binopArgs.find((a) => a.name === n)!;
+const findCxMap = (n: string) => cxMapArgs.find((a) => a.name === `_cx_v_${n}`)!;
+const findCxBinop = (n: string) => cxBinopArgs.find((a) => a.name === n)! as { name: string; expressionRe: string; expressionIm: string };
+
+const inplaceRealMaps = ["sqrt", "abs", "exp", "log", "sin", "cos", "tan", "asin", "acos", "atan", "neg", "ceil", "floor", "round", "conj", "reciprocal", "bnot"];
+const inplaceRealBinops = ["add", "sub", "mul", "div", "mod", "pow", "atan2", "max", "min", "band", "bor", "bxor", "lshift", "rshift", "rrshift", "trunc"];
+const inplaceCxMaps = ["neg", "conj", "exp", "log", "sqrt", "sin", "cos", "reciprocal"];
+const inplaceCxBinops = ["add", "sub", "mul", "div"];
+
+let inplaceSource = "";
+for (const n of inplaceRealMaps) {
+    const f = new InPlaceMapMetaFunction(n, findMap(n).mapElement!);
+    console.log(`  ${f.fullName}`);
+    inplaceSource += f.compileSource() + '\n\n';
+}
+for (const n of inplaceRealBinops) {
+    const f = new InPlaceBinopMetaFunction(n, findBinop(n).expression);
+    console.log(`  _re_v_i${n} (VV, VS)`);
+    inplaceSource += f.compileAllSource() + '\n\n';
+}
+for (const n of inplaceCxMaps) {
+    const a = findCxMap(n);
+    const f = new CxInPlaceMapMetaFunction(n, a.mapRe, a.mapIm, a.mapPre ?? "");
+    console.log(`  ${f.fullName}`);
+    inplaceSource += f.compileSource() + '\n\n';
+}
+for (const n of inplaceCxBinops) {
+    const a = findCxBinop(n);
+    const f = new CxInPlaceBinopMetaFunction(n, a.expressionRe, a.expressionIm);
+    console.log(`  _cx_v_i${n} (VV, VS)`);
+    inplaceSource += f.compileAllSource() + '\n\n';
+}
+Bun.write(inplaceFile, inplaceSource);
 console.log("_____\n");

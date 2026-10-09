@@ -1,0 +1,7 @@
+export function $NAME(x: number[], n: number): number[] {
+    let i = n-1;
+    for (; i >= 0; i -= 1) {
+        x[i] = $MAP_ELEMENT;
+    }
+    return x;
+}

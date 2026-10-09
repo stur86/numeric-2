@@ -1,0 +1,8 @@
+export function $NAME($ARGS, n: number): boolean[] {
+    let i = n-1;
+    const ans = Array(n);
+    for (; i >= 0; i -= 1) {
+        ans[i] = $EXPRESSION;
+    }
+    return ans;
+}

@@ -1,0 +1,7 @@
+export function $NAME($ARGS, n: number): number[] {
+    let i = n-1;
+    for (; i >= 0; i -= 1) {
+        x[i] = $EXPRESSION;
+    }
+    return x;
+}

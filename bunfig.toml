@@ -1,0 +1,4 @@
+[test]
+# Oracle-backed tests start Python (and import SciPy) on first use, which can
+# take several seconds on a busy machine
+timeout = 30000

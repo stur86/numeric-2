@@ -1,3 +1,10 @@
 {
-  "intentionallyNotExported": ["NestedArray"]
+  "$schema": "https://typedoc.org/schema.json",
+  "name": "numeric-2",
+  "entryPoints": ["index.ts"],
+  "out": "build/docs",
+  "readme": "none",
+  "intentionallyNotExported": ["NestedArray"],
+  "excludePrivate": true,
+  "excludeInternal": true
 }

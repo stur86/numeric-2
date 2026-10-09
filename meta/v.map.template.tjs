@@ -1,4 +1,4 @@
-export function $NAME($DATA_ARGS, n: number): number[] {
+export function $NAME($DATA_ARGS, n: number): $RETURN_TYPE[] {
     let i = n-1,
         ans = Array(n);
     for (; i >= 0; i -= 1) {

@@ -3,12 +3,20 @@
   "module": "index.ts",
   "type": "module",
   "devDependencies": {
-    "@types/benchmark": "^2.1.5",
+    "@stdlib/blas-base-daxpy": "0.4.1",
+    "@stdlib/blas-base-dcopy": "0.4.1",
+    "@stdlib/blas-base-ddot": "0.4.1",
+    "@stdlib/blas-base-dgemm": "0.1.1",
+    "@stdlib/blas-base-dgemv": "0.1.1",
+    "@stdlib/blas-base-dnrm2": "0.4.1",
+    "@stdlib/blas-base-dscal": "0.4.1",
+    "@stdlib/blas-base-idamax": "0.1.1",
+    "@stdlib/blas-ext-base-dsum": "0.3.1",
+    "@stdlib/math-strided-special-dsqrt": "0.2.3",
     "@types/bun": "latest",
-    "@types/microtime": "^2.1.2",
     "@types/numeric": "^1.2.6",
     "esm2umd": "^0.2.1",
-    "microtime": "^3.1.1",
+    "mathjs": "15.2.0",
     "numeric": "^1.2.6",
     "prettier": "^3.3.3",
     "typedoc": "^0.26.5"
@@ -22,6 +30,13 @@
     "build:esm-min": "bun build index.ts --outfile dist/numeric-2.min.js --minify",
     "build:umd": "esm2umd Numeric dist/numeric-2.js > dist/numeric-2.umd.js",
     "build:umd-min": "esm2umd Numeric dist/numeric-2.min.js > dist/numeric-2.umd.min.js",
-    "build": "npm run build:esm && npm run build:esm-min && npm run build:umd && npm run build:umd-min"
+    "build": "npm run build:esm && npm run build:esm-min && npm run build:umd && npm run build:umd-min",
+    "bench:bun": "bun run benchmarks/run.ts",
+    "bench:node": "bun build benchmarks/run.ts --target=node --outfile=benchmarks/.build/run-node.mjs && node --expose-gc benchmarks/.build/run-node.mjs",
+    "bench:web": "bun run benchmarks/web/build.ts",
+    "bench:serve": "bun run benchmarks/web/serve.ts",
+    "docs:build": "typedoc",
+    "site:build": "bun run scripts/build-site.ts",
+    "site:serve": "bun run scripts/serve.ts"
   }
 }

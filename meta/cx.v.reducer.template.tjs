@@ -1,0 +1,9 @@
+export function $NAME(x_re: number[], x_im: number[], n: number): number {
+    let i = n-1,
+        ans = $REDUCE_ELEMENT_INIT;
+    --i;
+    for (; i >= 0; i -= 1) {
+        ans $REDUCE_OPERATOR $REDUCE_ELEMENT;
+    }
+    return $TRANSFORMED_RESULT;
+}
