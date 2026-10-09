@@ -48,6 +48,21 @@ export type Case = {
     plain?: Partial<Record<LibName, (out: any, n: number) => Plain>>;
     /** Compare outputs; null = not comparable. Defaults to `close`. */
     check?: (a: Plain, b: Plain) => boolean | null;
+    /**
+     * Expected, explained discrepancies: a library whose output differs from
+     * numeric-2's (or which fails) for a known reason, e.g. a bug in that
+     * library. Only these are reported as accepted; any other discrepancy is
+     * flagged as a mismatch.
+     */
+    accepted?: Partial<Record<LibName, AcceptedDifference>>;
+};
+
+/** Why a library is expected to disagree with numeric-2 (or fail) on a case. */
+export type AcceptedDifference = {
+    /** Shown in the report next to the discrepancy. */
+    reason: string;
+    /** Limit the acceptance to these sizes (default: all sizes of the case). */
+    sizes?: number[];
 };
 
 export type Measurement = {
@@ -67,6 +82,8 @@ export type Measurement = {
     /** Whether the output matched numeric-2's (null if unchecked, or for numeric-2 itself). */
     agrees: boolean | null;
     error?: string;
+    /** Set when this library's mismatch or failure is an accepted, explained difference. */
+    accepted?: string;
 };
 
 export type EnvInfo = {
@@ -499,6 +516,13 @@ export function buildCases(libs: Libs): Case[] {
                 mathjs: (A, m) => m.eigs(A, { eigenvectors: false }).values,
             },
             check: sameEigenvalues,
+            accepted: {
+                mathjs: {
+                    sizes: [24, 48],
+                    reason: "Limitation of math.js 15.2.0: eigs does not converge on these random non-symmetric matrices and throws " +
+                        "\"The eigenvalues failed to converge\". numeric-2's eigenvalues agree with NumPy's (tests/eig.test.ts).",
+                },
+            },
         },
 
         {
@@ -589,6 +613,15 @@ export function buildCases(libs: Libs): Case[] {
                 numeric: ([D, d, A, b], nm) => nm.solveQP(D, d, A, b).solution,
             },
             check: (a, b) => close(a, b, 1e-6),
+            accepted: {
+                numeric: {
+                    sizes: [20],
+                    reason: "Bug in numeric.js: its solveQP (a JavaScript port of quadprog) turned three of the Fortran original's " +
+                        "\"skip to the next iteration\" jumps into loop exits, so it can drop the wrong constraint and stop at a " +
+                        "suboptimal point. On this problem numeric.js reaches objective 24.7512, while numeric-2 and SciPy's SLSQP " +
+                        "both reach 24.7453. See the regression cases in tests/optimize.test.ts.",
+                },
+            },
         },
 
         // Interpolation (math.js and stdlib have no counterparts)
@@ -838,7 +871,11 @@ export async function runAll(libs: Libs, opts: RunOptions): Promise<Measurement[
                 if (lib !== "numeric-2" && reference !== undefined && outputs[lib] !== undefined) {
                     agrees = (c.check ?? close)(outputs[lib]!, reference);
                 }
-                const base = { suite: c.suite, case: c.name, size, sizeLabel: c.sizeLabel(size), lib, agrees };
+                // Attach the acceptance reason only when there is a discrepancy it explains
+                const failed = errors[lib] !== undefined && !errors[lib]!.endsWith("is not available");
+                const acc = c.accepted?.[lib];
+                const accepted = acc && (agrees === false || failed) && (!acc.sizes || acc.sizes.includes(size)) ? acc.reason : undefined;
+                const base = { suite: c.suite, case: c.name, size, sizeLabel: c.sizeLabel(size), lib, agrees, ...(accepted ? { accepted } : {}) };
                 let m: Measurement;
                 if (errors[lib] !== undefined) {
                     m = { ...base, median: NaN, p25: NaN, p75: NaN, min: NaN, batch: 0, samples: 0, error: errors[lib] };

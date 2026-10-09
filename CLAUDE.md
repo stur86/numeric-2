@@ -271,6 +271,7 @@ Compares numeric-2 with numeric.js 1.2.6, math.js and stdlib (standalone `@stdli
 - `libs.ts` — Shared imports of numeric-2, math.js and the stdlib routines (numeric.js is loaded separately: npm on the server, jsDelivr in the browser).
 - `run.ts` — CLI runner. `bun run bench:bun` / `bun run bench:node` (Node runs a bundled build) write `benchmarks/results/{bun,node}.json`. Flags: `--quick`, `--filter <text>`, `--libs a,b`, `--out <dir>`, `--merge` (update only the measured cases in the existing results file).
 - `web/` — Benchmark page: `page.html` (markup/CSS, no document skeleton, so it can be published as an Artifact as-is), `app.ts` (page logic, bundled with numeric-2, math.js, stdlib and the suites), `build.ts` (`bun run bench:web` → `web/dist/` with `bench.js`, `results.json`, `index.html`), `serve.ts` (`bun run bench:serve`). The page reports when a CSP that forbids `eval` stops numeric.js from loading.
+- **Expected discrepancies must be declared**: if a library's output intentionally differs from numeric-2's (e.g. a bug in numeric.js) or it fails on a case, add `accepted: { <lib>: { reason, sizes? } }` to the case. The reason is stored on the measurement (`accepted`) and shown in the report (hover/click); undeclared discrepancies are flagged in red.
 - **When adding a feature that other libraries also offer, add a case to `buildCases()` in `suites.ts`**, then re-run both runtimes and rebuild the page.
 
 ## Building

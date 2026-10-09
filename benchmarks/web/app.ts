@@ -417,20 +417,44 @@ function renderChart() {
 
 // ── Output agreement ──
 
-/** Libraries whose output differs from numeric-2's, and those that failed, for a row. */
-function outputIssues(r: Row): { differ: LibName[]; failed: [LibName, string][]; compared: boolean } {
+type Accepted = { lib: LibName; kind: "differs" | "fails"; reason: string };
+
+/**
+ * Discrepancies with numeric-2 for a row: unexplained mismatches and failures
+ * (flagged), and accepted ones that carry a documented reason.
+ */
+function outputIssues(r: Row): { differ: LibName[]; failed: [LibName, string][]; accepted: Accepted[]; compared: boolean } {
     const c = cell(state.env, r);
-    const differ: LibName[] = [], failed: [LibName, string][] = [];
+    const differ: LibName[] = [], failed: [LibName, string][] = [], accepted: Accepted[] = [];
     let compared = false;
     for (const lib of LIBS) {
         const m = c[lib];
         if (!m) continue;
-        if (m.error && !m.error.endsWith("is not available")) failed.push([lib, m.error]);
+        const fails = !!m.error && !m.error.endsWith("is not available");
+        if (m.accepted && (fails || m.agrees === false)) {
+            accepted.push({ lib, kind: fails ? "fails" : "differs", reason: m.accepted });
+            continue;
+        }
+        if (fails) failed.push([lib, m.error!]);
         if (m.agrees === false) differ.push(lib);
         if (m.agrees === true) compared = true;
     }
-    return { differ, failed, compared };
+    return { differ, failed, accepted, compared };
 }
+
+/** A neutral status line (info icon) for accepted differences. */
+function noteLine(text: string) {
+    const s = el("span", { class: "status note" });
+    const icon = svg("svg", { width: 14, height: 14, viewBox: "0 0 14 14", "aria-hidden": "true" });
+    icon.append(
+        svg("circle", { cx: 7, cy: 7, r: 5.5, fill: "none", stroke: "currentColor", "stroke-width": 1.5 }),
+        svg("path", { d: "M7 6.2v3.6M7 4.2v.1", fill: "none", stroke: "currentColor", "stroke-width": 1.6, "stroke-linecap": "round" }),
+    );
+    s.append(icon, document.createTextNode(text));
+    return s;
+}
+
+const acceptedLabel = (a: Accepted) => `${LIB_TITLE[a.lib]} ${a.kind === "fails" ? "fails" : "differs"} (accepted)`;
 
 // ── Tooltip ──
 
@@ -465,8 +489,12 @@ function showTooltip(r: Row, target: SVGElement, ev?: PointerEvent) {
         tip.append(statusLine(false, `${LIB_TITLE[lib]}: ${e.slice(0, 90)}${e.length > 90 ? "…" : ""}`));
     }
     if (issues.differ.length) tip.append(statusLine(false, `Output differs from numeric-2: ${issues.differ.map((l) => LIB_TITLE[l]).join(", ")}`));
-    else if (issues.compared) tip.append(statusLine(true, "Outputs match numeric-2"));
-    else tip.append(el("div", { class: "sub" }, "Outputs not compared"));
+    else if (issues.compared) tip.append(statusLine(true, "Other outputs match numeric-2"));
+    else if (!issues.accepted.length) tip.append(el("div", { class: "sub" }, "Outputs not compared"));
+    for (const a of issues.accepted) {
+        tip.append(noteLine(acceptedLabel(a)));
+        tip.append(el("div", { class: "reason" }, a.reason));
+    }
     tip.append(el("div", { class: "sub" }, `Small figures: relative speed against ${LIB_TITLE[state.baseline]}.`));
 
     tip.hidden = false;
@@ -523,9 +551,9 @@ function renderTable() {
             if (!m) {
                 td.append(el("span", { class: "muted" }, "n/a"));
             } else if (!ok(m)) {
-                td.className = "err";
-                td.textContent = m.error?.endsWith("is not available") ? "not loaded" : "failed";
-                if (m.error) td.title = m.error;
+                td.className = m.accepted ? "accepted" : "err";
+                td.textContent = m.error?.endsWith("is not available") ? "not loaded" : m.accepted ? "failed (accepted)" : "failed";
+                if (m.error) td.title = m.accepted ? `${m.error}\n\nAccepted: ${m.accepted}` : m.error;
             } else {
                 td.append(document.createTextNode(fmtTime(m.median)));
                 const q = lib === base ? null : relative(c, lib, base);
@@ -540,8 +568,35 @@ function renderTable() {
         }
         const issues = outputIssues(r);
         const td = el("td");
-        if (issues.differ.length) td.append(statusLine(false, `${issues.differ.map((l) => LIB_TITLE[l]).join(", ")} differ`));
-        else if (issues.compared) td.append(statusLine(true, "Match"));
+        if (issues.differ.length || issues.failed.length) {
+            const who = [...issues.differ, ...issues.failed.map(([l]) => l)].map((l) => LIB_TITLE[l]);
+            td.append(statusLine(false, `${[...new Set(who)].join(", ")} ${issues.differ.length ? "differ" : "fail"}`));
+        } else if (issues.accepted.length) {
+            // Accepted differences: the reason on hover, and expandable on click (works on touch screens)
+            const btn = el("button", { type: "button", class: "note-btn", "aria-expanded": "false",
+                title: issues.accepted.map((a) => `${acceptedLabel(a)}: ${a.reason}`).join("\n\n") });
+            btn.append(noteLine(issues.accepted.length === 1 ? acceptedLabel(issues.accepted[0]) : `${issues.accepted.length} accepted differences`));
+            let detail: HTMLTableRowElement | null = null;
+            btn.addEventListener("click", () => {
+                if (detail) {
+                    detail.remove();
+                    detail = null;
+                    btn.setAttribute("aria-expanded", "false");
+                    return;
+                }
+                detail = el("tr", { class: "note-row" }) as HTMLTableRowElement;
+                const cellTd = el("td", { colspan: String(2 + libs.length + 1) });
+                for (const a of issues.accepted) {
+                    const p = el("p");
+                    p.append(el("strong", {}, `${acceptedLabel(a)}. `), document.createTextNode(a.reason));
+                    cellTd.append(p);
+                }
+                detail.append(cellTd);
+                tr.after(detail);
+                btn.setAttribute("aria-expanded", "true");
+            });
+            td.append(btn);
+        } else if (issues.compared) td.append(statusLine(true, "Match"));
         else td.append(el("span", { class: "muted" }, "—"));
         tr.append(td);
         tbody.append(tr);

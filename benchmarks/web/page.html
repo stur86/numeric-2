@@ -82,6 +82,14 @@ header { display: flex; flex-direction: column; gap: 10px; }
 .status svg { flex: none; }
 .status.good { color: var(--good-text); }
 .status.bad { color: var(--critical); }
+.status.note { color: var(--ink-2); }
+.note-btn { all: unset; cursor: pointer; border-radius: 4px; }
+.note-btn:hover .status.note { color: var(--ink); text-decoration: underline; text-decoration-style: dotted; text-underline-offset: 3px; }
+.note-btn:focus-visible { outline: 2px solid var(--lib-numeric2); outline-offset: 2px; }
+.results tr.note-row td { white-space: normal; text-align: left; font-family: var(--font-sans); color: var(--ink-2); background: var(--wash); }
+.results tr.note-row p { margin: 4px 0; max-width: 90ch; }
+.results td.accepted { color: var(--ink-2); font-family: var(--font-sans); }
+.tooltip .reason { color: var(--ink-2); font-size: 0.78rem; margin: 2px 0 6px 20px; }
 
 /* Controls */
 .controls { display: flex; flex-wrap: wrap; gap: 12px 20px; align-items: center; }
@@ -240,6 +248,7 @@ footer { color: var(--muted); font-size: 0.82rem; }
         <li>math.js <code>eigs</code> fails to converge on the 24×24 and 48×48 random non-symmetric matrices used here; those cells show the error instead of a time.</li>
         <li>The timer warms up each call, picks a batch size so one batch takes about 25 ms (10–15 ms in a quick run), then records 15 batches (7 in a quick run). The chart shows the median; whiskers and the tooltip show the 25th–75th percentile range.</li>
         <li>Before timing, every output is compared with numeric-2's, which the test suite cross-validates against NumPy. "Match" means agreement to a relative tolerance of 10<sup>−8</sup>; eigenvalues are compared as unordered sets; LU outputs use different packed layouts and are not compared.</li>
+        <li>Some discrepancies are expected, for example where another library has a known bug. Each of these is declared in the benchmark definition with a written reason, and is shown as an accepted difference: hover over it, or select it, to read the reason. Any discrepancy without a declared reason is flagged in red.</li>
         <li>Server runs use <code>bun run bench:bun</code> and <code>bun run bench:node</code>; numeric-2 runs from source on Bun and from a bundled build on Node. This page runs a browser bundle of numeric-2, math.js and stdlib, and loads numeric.js 1.2.6 from jsDelivr.</li>
         <li>numeric.js generates code with <code>new Function</code> while it loads. Pages whose Content Security Policy forbids <code>eval</code> cannot load it at all; numeric-2 has no such dependency. The browser card above reports which case applies here.</li>
         <li>Machines vary and so does noise: treat relative speeds within about ±15% of 1× as a tie.</li>

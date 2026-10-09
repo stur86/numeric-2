@@ -52,9 +52,13 @@ const results = await runAll({ numeric, numeric2, mathjs, stdlib }, {
     },
 });
 for (const [key, row] of pending) {
-    const flags = LIBS.filter((l) => row[l]?.agrees === false).map((l) => LIB_TITLE[l]);
+    const flag = (l: LibName) => row[l]?.agrees === false || (row[l]?.error !== undefined && !row[l]!.error!.endsWith("is not available"));
+    const notes = [
+        ...LIBS.filter((l) => flag(l) && !row[l]!.accepted).map((l) => `${row[l]!.agrees === false ? "DIFFERS" : "FAILS"}: ${LIB_TITLE[l]}`),
+        ...LIBS.filter((l) => flag(l) && row[l]!.accepted).map((l) => `accepted: ${LIB_TITLE[l]}`),
+    ];
     console.log(key.slice(0, 51).padEnd(52) + LIBS.map((l) => (row[l] ? fmt(row[l]!.median) : "")
-        .padStart(13)).join("") + (flags.length ? `   differs: ${flags.join(", ")}` : ""));
+        .padStart(13)).join("") + (notes.length ? `   ${notes.join("; ")}` : ""));
 }
 
 mkdirSync(outDir, { recursive: true });
