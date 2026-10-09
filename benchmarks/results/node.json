@@ -2,7 +2,7 @@
  "env": {
   "runtime": "Node 25.3.0",
   "platform": "linux/x64",
-  "date": "2026-10-09T12:49:46.599Z",
+  "date": "2026-10-09T12:59:20.875Z",
   "versions": {
    "numeric": "1.2.6",
    "mathjs": "15.2.0",
@@ -2951,6 +2951,90 @@
    "min": 424825.187999988,
    "batch": 1,
    "samples": 8
+  },
+  {
+   "suite": "Linear algebra",
+   "case": "svd(A)",
+   "size": 8,
+   "sizeLabel": "8×8",
+   "lib": "numeric-2",
+   "agrees": null,
+   "median": 18.796725555555568,
+   "p25": 17.579558888888933,
+   "p75": 20.26339166666661,
+   "min": 17.042438888888807,
+   "batch": 900,
+   "samples": 15
+  },
+  {
+   "suite": "Linear algebra",
+   "case": "svd(A)",
+   "size": 8,
+   "sizeLabel": "8×8",
+   "lib": "numeric",
+   "agrees": true,
+   "median": 15.82941458026511,
+   "p25": 15.343821428571463,
+   "p75": 16.133340574374056,
+   "min": 14.885447717231202,
+   "batch": 1358,
+   "samples": 15
+  },
+  {
+   "suite": "Linear algebra",
+   "case": "svd(A)",
+   "size": 32,
+   "sizeLabel": "32×32",
+   "lib": "numeric-2",
+   "agrees": null,
+   "median": 536.0622916666671,
+   "p25": 525.56278125,
+   "p75": 572.5619895833347,
+   "min": 512.6513541666687,
+   "batch": 48,
+   "samples": 15
+  },
+  {
+   "suite": "Linear algebra",
+   "case": "svd(A)",
+   "size": 32,
+   "sizeLabel": "32×32",
+   "lib": "numeric",
+   "agrees": true,
+   "median": 621.9414634146366,
+   "p25": 612.6747317073184,
+   "p75": 637.1119390243854,
+   "min": 584.5166585365804,
+   "batch": 41,
+   "samples": 15
+  },
+  {
+   "suite": "Linear algebra",
+   "case": "svd(A)",
+   "size": 100,
+   "sizeLabel": "100×100",
+   "lib": "numeric-2",
+   "agrees": null,
+   "median": 14181.46200000001,
+   "p25": 13712.761499999942,
+   "p75": 15104.292500000043,
+   "min": 12530.497000000196,
+   "batch": 2,
+   "samples": 15
+  },
+  {
+   "suite": "Linear algebra",
+   "case": "svd(A)",
+   "size": 100,
+   "sizeLabel": "100×100",
+   "lib": "numeric",
+   "agrees": true,
+   "median": 17347.342000000026,
+   "p25": 17030.87849999997,
+   "p75": 17695.874999999887,
+   "min": 16198.999500000127,
+   "batch": 2,
+   "samples": 15
   }
  ]
 }

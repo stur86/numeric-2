@@ -380,6 +380,18 @@ def handle_cx_dot(req: dict) -> dict:
     return {"inputs": {"x": cx_to_parts(x), "y": cx_to_parts(y)}, "expected": cx_to_parts(np.dot(x, y))}
 
 
+def handle_svd(req: dict) -> dict:
+    """Random m×n matrix (optionally of a given rank) and its singular values."""
+    rng = np.random.default_rng(req["seed"])
+    m, n = req["m"], req["n"]
+    rank = req.get("rank")
+    if rank is None:
+        A = rng.standard_normal((m, n))
+    else:
+        A = rng.standard_normal((m, rank)) @ rng.standard_normal((rank, n))
+    return {"inputs": {"A": A.tolist()}, "expected": np.linalg.svd(A, compute_uv=False).tolist()}
+
+
 def handle_cx_dot_VV(req: dict) -> dict:
     rng = np.random.default_rng(req["seed"])
     n = req["n"]
@@ -460,6 +472,8 @@ def process(req: dict) -> dict:
         return handle_cx_linalg(req)
     elif op == "cx_dot":
         return handle_cx_dot(req)
+    elif op == "svd":
+        return handle_svd(req)
     elif op == "getBlock":
         return handle_getBlock(req)
     elif op == "getBlock1D":

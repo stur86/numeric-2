@@ -34,3 +34,9 @@ import { sum, prod, sup, inf, any, all } from "./reduce";
 
 export { sqrt, exp, log, sin, cos, tan, asin, acos, atan, neg, ceil, floor, round, conj, abs, isNaN, isFinite };
 export { sum, prod, sup, inf, any, all };
+
+import { svd } from "./svd";
+import type { SVDResult } from "./svd";
+
+export { svd };
+export type { SVDResult };

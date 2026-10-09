@@ -40,6 +40,7 @@ The original numeric.js is at `../numeric` relative to this project. Its documen
   - `cxmat.ts` — **Internal.** Complex matrix/vector/scalar helpers (`CxMatrix`, `CxVector`, `CxScalar` types) for eigenvalue decomposition. Lightweight standalone functions operating on `[number[][], number[][] | null]` pairs with lazy imaginary allocation. Not exported from the public API.
   - `cxlinalg.ts` — **Internal.** Complex LU (`cxLU`), `cxLUsolve`, `cxInv`, `cxDet` on split re/im arrays; used by the public `LU`/`LUsolve`/`solve`/`inv`/`det` when an input is complex.
   - `cxhouse.ts` — **Internal.** Complex Householder reflection (`cxHouse`), complex upper Hessenberg reduction (`cxToUpperHessenberg`), and complex single-shift QR iteration (`cxQR`). Used by the complex eigenvalue decomposition path.
+  - `svd.ts` — Singular value decomposition (`svd`), Golub–Reinsch ported from numeric.js. Returns the thin `{U, S, V}` with `A = U·diag(S)·Vᵀ`, singular values descending; unlike numeric.js it also handles matrices with fewer rows than columns (via the transpose). Real matrices only.
   - `eig.ts` — Eigenvalue decomposition (`eig`). Accepts `MatrixLike` (real or complex), returns `{lambda: Vector, E: Matrix}` satisfying `A * E = E * diag(lambda)`. Real matrices use Householder → Francis QR → 2×2 block processing. Complex matrices use complex Householder → single-shift QR (no 2×2 blocks needed). Complex eigenvalues/eigenvectors use the `_im` field on Vector/Matrix.
 
 ## Meta-Generation System
@@ -179,6 +180,8 @@ Following the original numeric.js:
 - 2x loop unrolling where beneficial (dot products, transpose, LU)
 - Pre-allocated result arrays (`Array(n)`)
 - Column extraction for large matrix multiply (dotMMbig)
+- **V8 allocation sites:** never allocate both arrays-of-rows and rows of numbers at the same `Array(n)` line (e.g. one recursive helper). V8 tracks element kinds per allocation site, and rows from such a site get boxed (generic) elements, making numeric loops several times slower on Node (Bun is unaffected). See `cloneRow` in `src/utils.ts`.
+- **Hot dispatch:** public element-wise ops use `fastUnary`/`fastBinary` (`src/core/utils.ts`), which resolve kernels once and call them directly for real inputs; keep new public element-wise functions on this path.
 
 ## Public API Pattern
 
@@ -221,7 +224,7 @@ A cross-language validation framework that compares numeric-2 results against Nu
 - `tests/oracle.py` — Python script that accepts NDJSON on stdin, generates seeded random data with NumPy, computes reference results, and outputs NDJSON responses with both inputs and expected outputs.
 - `tests/runner.ts` — Bun helper that spawns `uv run python tests/oracle.py`, sends requests, and parses responses. Provides `oracle()`, `assertClose()`, `assertClose2D()`, `assertScalarClose()`.
 - `tests/pyproject.toml` — uv project config (numpy dependency). Run `cd tests && uv sync` to install.
-- Test files: `unary.test.ts`, `binary.test.ts`, `reducers.test.ts`, `dot.test.ts`, `linalg.test.ts`, `complex.test.ts`, `eig.test.ts`, `utilities.test.ts`, `complex-dispatch.test.ts`, `elementwise.test.ts` (public API on vectors and matrices)
+- Test files: `unary.test.ts`, `binary.test.ts`, `reducers.test.ts`, `dot.test.ts`, `linalg.test.ts`, `complex.test.ts`, `eig.test.ts`, `utilities.test.ts`, `complex-dispatch.test.ts`, `elementwise.test.ts` (public API on vectors and matrices), `cx-linalg.test.ts`, `svd.test.ts` (singular values vs NumPy, plus reconstruction and orthonormality, since singular vectors are sign-ambiguous)
 - `cx-linalg.test.ts` covers complex solve/LU/inv/det/dot and complex element-wise ops (incl. complex scalar operands).
 - Element-wise oracle ops accept `"shape": [m, n]` instead of `"n"` to produce matrix inputs; `cx_*` binary ops accept `real_x`/`real_y` to make one operand purely real. Oracle exceptions come back as `{"error": ...}` and the runner raises them as test failures.
 
@@ -235,7 +238,7 @@ Compares numeric-2 with numeric.js 1.2.6, math.js and stdlib (standalone `@stdli
 
 - `suites.ts` — Environment-agnostic suite: `buildCases()` defines each case's per-library inputs and calls (public APIs only; each library gets its own input types, prepared outside the timed region). Outputs are compared against numeric-2's before timing. Timing uses `performance.now()` with calibrated batches (median + IQR) and a per-measurement time budget.
 - `libs.ts` — Shared imports of numeric-2, math.js and the stdlib routines (numeric.js is loaded separately: npm on the server, jsDelivr in the browser).
-- `run.ts` — CLI runner. `bun run bench:bun` / `bun run bench:node` (Node runs a bundled build) write `benchmarks/results/{bun,node}.json`. Flags: `--quick`, `--filter <text>`, `--libs a,b`, `--out <dir>`.
+- `run.ts` — CLI runner. `bun run bench:bun` / `bun run bench:node` (Node runs a bundled build) write `benchmarks/results/{bun,node}.json`. Flags: `--quick`, `--filter <text>`, `--libs a,b`, `--out <dir>`, `--merge` (update only the measured cases in the existing results file).
 - `web/` — Benchmark page: `page.html` (markup/CSS, no document skeleton, so it can be published as an Artifact as-is), `app.ts` (page logic, bundled with numeric-2, math.js, stdlib and the suites), `build.ts` (`bun run bench:web` → `web/dist/` with `bench.js`, `results.json`, `index.html`), `serve.ts` (`bun run bench:serve`). The page reports when a CSP that forbids `eval` stops numeric.js from loading.
 - **When adding a feature that other libraries also offer, add a case to `buildCases()` in `suites.ts`**, then re-run both runtimes and rebuild the page.
 

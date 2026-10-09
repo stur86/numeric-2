@@ -4,10 +4,11 @@
  *   bun run bench:bun                 # Bun, from source
  *   bun run bench:node                # Node, from a bundled build of this file
  *   ... -- --filter "linear" --quick  # subset / shorter samples
+ *   ... -- --filter "svd" --merge      # update just these cases in the existing results file
  *
  * Writes benchmarks/results/<runtime>.json.
  */
-import { mkdirSync, writeFileSync } from "fs";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
 import { join } from "path";
 import numeric from "numeric";
 import { mathjs, numeric2, stdlib, VERSIONS } from "./libs";
@@ -49,11 +50,20 @@ for (const [key, row] of pending) {
         .padStart(13)).join("") + (flags.length ? `   differs: ${flags.join(", ")}` : ""));
 }
 
-const file: ResultFile = {
-    env: { runtime, platform: `${process.platform}/${process.arch}`, date: new Date().toISOString(), versions: VERSIONS },
-    results,
-};
 mkdirSync(outDir, { recursive: true });
 const outPath = join(outDir, `${runtimeKey}.json`);
+
+// --merge: replace only the measurements just taken, keep the rest of the existing file
+let merged = results;
+if (flag("merge") && existsSync(outPath)) {
+    const key = (m: Measurement) => `${m.suite}|${m.case}|${m.size}|${m.lib}`;
+    const fresh = new Set(results.map(key));
+    const previous: ResultFile = JSON.parse(readFileSync(outPath, "utf8"));
+    merged = [...previous.results.filter((m) => !fresh.has(key(m))), ...results];
+}
+const file: ResultFile = {
+    env: { runtime, platform: `${process.platform}/${process.arch}`, date: new Date().toISOString(), versions: VERSIONS },
+    results: merged,
+};
 writeFileSync(outPath, JSON.stringify(file, null, 1));
 console.log(`\nWrote ${outPath}`);

@@ -291,3 +291,20 @@ test("toUpperHessenberg and QRFrancis wrap their results", () => {
     const covered = qr.B.reduce((n, [s, e]) => n + e - s + 1, 0);
     expect(covered).toBe(4);
 });
+
+// svd
+
+import { svd } from "./svd";
+
+test("svd of simple matrices", () => {
+    const d = svd([[3, 0], [0, -2]]);
+    expectClose(d.S.real, [3, 2]);
+    expectClose(svd([[0, 0], [0, 0]]).S.real, [0, 0]);
+    expectClose(svd(new Matrix([[2]])).S.real, [2]);
+    expectClose(svd([[3, 4]]).S.real, [5]);
+});
+
+test("svd rejects complex and ragged input", () => {
+    expect(() => svd(new Matrix([[1, 2]], [[1, 0]]))).toThrow("complex");
+    expect(() => svd([[1, 2], [3]])).toThrow("same length");
+});

@@ -446,6 +446,19 @@ export function buildCases(libs: Libs): Case[] {
             check: sameEigenvalues,
         },
 
+        {
+            suite: "Linear algebra", name: "svd(A)", sizes: [8, 32, 100], sizeLabel: matLabel,
+            setup: (n, rng) => mat1(randMat(n, n, rng)),
+            run: {
+                "numeric-2": (A) => L.svd(A).S,
+                numeric: (A, nm) => nm.svd(A).S,
+            },
+            // Compare singular values in descending order
+            plain: {
+                numeric: (out) => ({ re: [...out].sort((a: number, b: number) => b - a), im: null }),
+            },
+        },
+
         // Complex
         {
             suite: "Complex", name: "mul x * y", sizes: VEC_SIZES, sizeLabel: vecLabel,
