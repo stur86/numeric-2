@@ -34,6 +34,9 @@
     "bench:bun": "bun run benchmarks/run.ts",
     "bench:node": "bun build benchmarks/run.ts --target=node --outfile=benchmarks/.build/run-node.mjs && node --expose-gc benchmarks/.build/run-node.mjs",
     "bench:web": "bun run benchmarks/web/build.ts",
-    "bench:serve": "bun run benchmarks/web/serve.ts"
+    "bench:serve": "bun run benchmarks/web/serve.ts",
+    "docs:build": "typedoc",
+    "site:build": "bun run scripts/build-site.ts",
+    "site:serve": "bun run scripts/serve.ts"
   }
 }

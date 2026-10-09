@@ -1,0 +1,152 @@
+# Build the project website and publish it to the gh-pages branch.
+#
+# Each part is built by its own job and cached on a hash of its inputs, so a
+# merge that only touches the front page re-uses the docs, bundles and
+# benchmark results. The site job then assembles everything and pushes it.
+name: Website
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write # push to gh-pages
+
+concurrency:
+  group: website
+  cancel-in-progress: true
+
+env:
+  BUN_VERSION: 1.4.2
+
+jobs:
+  docs:
+    name: API reference
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: ${{ env.BUN_VERSION }}
+      - name: Cache built docs
+        id: cache
+        uses: actions/cache@v4
+        with:
+          path: build/docs
+          key: docs-${{ hashFiles('index.ts', 'src/**/*.ts', '!src/**/*.test.ts', 'typedoc.json', 'package.json', 'bun.lockb') }}
+      - name: Cache dependencies
+        if: steps.cache.outputs.cache-hit != 'true'
+        uses: actions/cache@v4
+        with:
+          path: ~/.bun/install/cache
+          key: bun-${{ hashFiles('bun.lockb') }}
+      - name: Build docs
+        if: steps.cache.outputs.cache-hit != 'true'
+        run: |
+          bun install --frozen-lockfile
+          bun run docs:build
+      - uses: actions/upload-artifact@v4
+        with:
+          name: docs
+          path: build/docs
+
+  library:
+    name: Library bundles
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: ${{ env.BUN_VERSION }}
+      - name: Cache built bundles
+        id: cache
+        uses: actions/cache@v4
+        with:
+          path: dist
+          key: dist-${{ hashFiles('index.ts', 'src/**/*.ts', '!src/**/*.test.ts', 'package.json', 'bun.lockb') }}
+      - name: Cache dependencies
+        if: steps.cache.outputs.cache-hit != 'true'
+        uses: actions/cache@v4
+        with:
+          path: ~/.bun/install/cache
+          key: bun-${{ hashFiles('bun.lockb') }}
+      - name: Build bundles
+        if: steps.cache.outputs.cache-hit != 'true'
+        run: |
+          bun install --frozen-lockfile
+          bun run build
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist
+
+  benchmarks:
+    name: Benchmarks
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: ${{ env.BUN_VERSION }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Cache dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.bun/install/cache
+          key: bun-${{ hashFiles('bun.lockb') }}
+      - run: bun install --frozen-lockfile
+      # Results depend on the library and the benchmark suite, not on the report page
+      - name: Cache benchmark results
+        id: cache
+        uses: actions/cache@v4
+        with:
+          path: benchmarks/results
+          key: bench-results-${{ hashFiles('index.ts', 'src/**/*.ts', '!src/**/*.test.ts', 'benchmarks/*.ts', 'package.json', 'bun.lockb') }}
+      - name: Run benchmarks (Bun)
+        if: steps.cache.outputs.cache-hit != 'true'
+        run: bun run bench:bun
+      - name: Run benchmarks (Node)
+        if: steps.cache.outputs.cache-hit != 'true'
+        run: bun run bench:node
+      - name: Build benchmark report
+        run: bun run bench:web
+      - uses: actions/upload-artifact@v4
+        with:
+          name: benchmarks
+          path: benchmarks/web/dist
+
+  site:
+    name: Assemble and publish
+    needs: [docs, library, benchmarks]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: ${{ env.BUN_VERSION }}
+      - uses: actions/download-artifact@v4
+        with:
+          name: docs
+          path: build/docs
+      - uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist
+      - uses: actions/download-artifact@v4
+        with:
+          name: benchmarks
+          path: benchmarks/web/dist
+      - name: Assemble site
+        run: bun run site:build -- --assemble-only
+      - name: Publish to gh-pages
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_branch: gh-pages
+          publish_dir: build/site
+          force_orphan: true
+          commit_message: "Deploy website from ${{ github.sha }}"

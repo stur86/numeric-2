@@ -274,6 +274,12 @@ Compares numeric-2 with numeric.js 1.2.6, math.js and stdlib (standalone `@stdli
 - **Expected discrepancies must be declared**: if a library's output intentionally differs from numeric-2's (e.g. a bug in numeric.js) or it fails on a case, add `accepted: { <lib>: { reason, sizes? } }` to the case. The reason is stored on the measurement (`accepted`) and shown in the report (hover/click); undeclared discrepancies are flagged in red.
 - **When adding a feature that other libraries also offer, add a case to `buildCases()` in `suites.ts`**, then re-run both runtimes and rebuild the page.
 
+## Website (`site/`, `scripts/`, `.github/workflows/pages.yml`)
+
+- `site/index.html` — Front page (standalone HTML). Runs a live example against the site's own `dist/numeric-2.min.js` and reads headline figures from `benchmarks/results.json`; keep its example code and feature list in sync with the API.
+- `scripts/build-site.ts` (`bun run site:build`) — Builds the API reference (TypeDoc → `build/docs`, configured in `typedoc.json`), the library bundles (`dist/`) and the benchmark report (`benchmarks/web/dist`, from the saved `benchmarks/results/*.json`), then assembles `build/site` with `docs/`, `benchmarks/` and `dist/` under the front page. `--assemble-only` skips the builds. `bun run site:serve` previews `build/site`.
+- `.github/workflows/pages.yml` — On push to `main` (and manual dispatch): separate jobs build the docs, the bundles and the benchmarks (re-running both runtimes only when the library or suite changed), each cached on a hash of its inputs; a final job assembles the site and pushes it to the `gh-pages` branch.
+
 ## Building
 
 - `npm run build` — Builds ESM, minified ESM, UMD, and minified UMD bundles into `dist/`

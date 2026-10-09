@@ -26,7 +26,7 @@ export type { HessenbergResult, QRFrancisResult, EigResult };
 
 export type { MatrixLike, VectorLike } from "./wrap";
 export type { Operand, ArithResult, CompareResult, LogicalOperand, LogicalResult, DotOperand };
-export type { TensorLike, TensorOf } from "./wrap";
+export type { TensorLike, TensorOf, NDArray, NDLike } from "./wrap";
 export type { BoolOf } from "./elementwise";
 
 import { sqrt, exp, log, sin, cos, tan, asin, acos, atan, neg, ceil, floor, round, conj, abs, isNaN, isFinite, reciprocal, not, bnot } from "./elementwise";
