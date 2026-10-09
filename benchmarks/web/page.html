@@ -200,7 +200,6 @@ footer { color: var(--muted); font-size: 0.82rem; }
     <ul>
       <li>Timings depend on the machine: its processor, its memory and whatever else is running. The server results here come from a single machine, or from shared CI runners, which are noisier still.</li>
       <li>They depend on the runtime and its version. Bun, Node and each browser compile JavaScript differently, so the same code can rank differently from one to the next.</li>
-      <li>The libraries are designed differently. stdlib works in place on typed arrays, math.js converts and checks its arguments on every call, and numeric-2 wraps results in Vector/Matrix objects. Each case uses each library's idiomatic API, so part of every difference comes from the API style, not just the algorithm.</li>
       <li>Repeated runs vary. Treat differences within about ±15% as a tie, and look at the 25th–75th percentile ranges in the chart and tooltips.</li>
       <li>The suite covers a chosen set of operations and sizes. Your workload may behave differently; run the suite in your browser, or on your own machine, to check.</li>
     </ul>
