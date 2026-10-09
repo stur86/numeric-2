@@ -477,6 +477,65 @@ export function buildCases(libs: Libs): Case[] {
             },
         },
 
+        // Optimization (math.js and stdlib have no counterparts)
+        {
+            suite: "Optimization", name: "uncmin(Rosenbrock)", sizes: [2, 8, 16], sizeLabel: (n) => `${n} vars`,
+            setup: (n) => {
+                // Extended Rosenbrock function, started at (-1.2, 1, -1.2, 1, ...)
+                const f = (x: number[]) => {
+                    let s = 0;
+                    for (let i = 0; i < x.length - 1; i++) s += 100 * (x[i + 1] - x[i] * x[i]) ** 2 + (1 - x[i]) ** 2;
+                    return s;
+                };
+                const x0 = Array.from({ length: n }, (_, i) => (i % 2 === 0 ? -1.2 : 1));
+                return { "numeric-2": [f, x0], numeric: [f, x0] };
+            },
+            run: {
+                "numeric-2": ([f, x0]) => libs.numeric2.optimize.uncmin(f, x0).solution,
+                numeric: ([f, x0], nm) => nm.uncmin(f, x0).solution,
+            },
+            check: (a, b) => close(a, b, 1e-5),
+        },
+        {
+            suite: "Optimization", name: "solveLP", sizes: [5, 10, 20], sizeLabel: (n) => `${n} vars`,
+            setup: (n, rng) => {
+                const m = 2 * n;
+                const A = randMat(m, n, rng), xf = randVec(n, rng);
+                const b = A.map((row: number[]) => row.reduce((s, v, i) => s + v * xf[i], 0) + 0.1 + 0.9 * rng());
+                for (let i = 0; i < n; i++) {
+                    const e = new Array(n).fill(0);
+                    e[i] = 1;
+                    A.push(e, e.map((v) => -v));
+                    b.push(5, 5);
+                }
+                const c = randVec(n, rng);
+                return { "numeric-2": [c, A, b], numeric: [c, A, b] };
+            },
+            run: {
+                "numeric-2": ([c, A, b]) => libs.numeric2.optimize.solveLP(c, A, b).solution,
+                numeric: ([c, A, b], nm) => nm.solveLP(c, A, b).solution,
+            },
+            check: (a, b) => close(a, b, 1e-6),
+        },
+        {
+            suite: "Optimization", name: "solveQP", sizes: [5, 10, 20], sizeLabel: (n) => `${n} vars`,
+            setup: (n, rng) => {
+                const q = Math.round(1.5 * n);
+                const Mr = randMat(n, n, rng);
+                const D = Mr.map((ri: number[], i: number) => Mr.map((rj: number[], j: number) =>
+                    ri.reduce((s, v, k) => s + v * rj[k], 0) + (i === j ? n : 0)));
+                const d = randVec(n, rng).map((v: number) => 5 * v);
+                const A = randMat(n, q, rng), xf = randVec(n, rng);
+                const b = Array.from({ length: q }, (_, j) => A.reduce((s: number, row: number[], i: number) => s + row[j] * xf[i], 0) - 0.1 - 0.9 * rng());
+                return { "numeric-2": [D, d, A, b], numeric: [D, d, A, b] };
+            },
+            run: {
+                "numeric-2": ([D, d, A, b]) => libs.numeric2.optimize.solveQP(D, d, A, b).solution,
+                numeric: ([D, d, A, b], nm) => nm.solveQP(D, d, A, b).solution,
+            },
+            check: (a, b) => close(a, b, 1e-6),
+        },
+
         // Complex
         {
             suite: "Complex", name: "mul x * y", sizes: VEC_SIZES, sizeLabel: vecLabel,

@@ -403,6 +403,49 @@ def handle_fft(req: dict) -> dict:
     return {"inputs": {"x": cx_to_parts(x + 0j)}, "expected": cx_to_parts(fn(x))}
 
 
+def handle_lp(req: dict) -> dict:
+    """Random bounded LP: minimize c·x s.t. A x <= b (with box bounds as rows), optional Aeq x = beq."""
+    from scipy.optimize import linprog
+    rng = np.random.default_rng(req["seed"])
+    n, m = req["n"], req["m"]
+    A = rng.standard_normal((m, n))
+    x_feas = rng.uniform(-1, 1, n)
+    b = A @ x_feas + rng.uniform(0.1, 1.0, m)       # x_feas is strictly feasible
+    box = 5.0
+    A_full = np.vstack([A, np.eye(n), -np.eye(n)])  # |x_i| <= box keeps the LP bounded
+    b_full = np.concatenate([b, np.full(n, box), np.full(n, box)])
+    c = rng.standard_normal(n)
+    kw = {}
+    out = {"c": c.tolist(), "A": A_full.tolist(), "b": b_full.tolist()}
+    if req.get("meq"):
+        Aeq = rng.standard_normal((req["meq"], n))
+        beq = Aeq @ x_feas
+        kw = {"A_eq": Aeq, "b_eq": beq}
+        out.update({"Aeq": Aeq.tolist(), "beq": beq.tolist()})
+    res = linprog(c, A_ub=A_full, b_ub=b_full, bounds=[(None, None)] * n, method="highs", **kw)
+    return {"inputs": out, "expected": {"x": res.x.tolist(), "fun": float(res.fun)}}
+
+
+def handle_qp(req: dict) -> dict:
+    """Random strictly convex QP: minimize ½xᵀDx − dᵀx s.t. Aᵀx >= b (first meq equalities)."""
+    from scipy.optimize import minimize
+    rng = np.random.default_rng(req["seed"])
+    n, q, meq = req["n"], req["q"], req.get("meq", 0)
+    M = rng.standard_normal((n, n))
+    D = M @ M.T + n * np.eye(n)
+    d = rng.standard_normal(n) * 5
+    A = rng.standard_normal((n, q))
+    x_feas = rng.standard_normal(n)
+    b = A.T @ x_feas - np.concatenate([np.zeros(meq), rng.uniform(0.1, 1.0, q - meq)])
+    cons = [{"type": "eq" if i < meq else "ineq", "fun": (lambda x, i=i: A[:, i] @ x - b[i]), "jac": (lambda x, i=i: A[:, i])}
+            for i in range(q)]
+    obj = lambda x: 0.5 * x @ D @ x - d @ x
+    res = minimize(obj, x_feas, jac=lambda x: D @ x - d, constraints=cons, method="SLSQP",
+                   options={"ftol": 1e-15, "maxiter": 1000})
+    return {"inputs": {"D": D.tolist(), "d": d.tolist(), "A": A.tolist(), "b": b.tolist()},
+            "expected": {"x": res.x.tolist(), "fun": float(res.fun)}}
+
+
 def handle_cx_dot_VV(req: dict) -> dict:
     rng = np.random.default_rng(req["seed"])
     n = req["n"]
@@ -487,6 +530,10 @@ def process(req: dict) -> dict:
         return handle_svd(req)
     elif op in ("fft", "ifft"):
         return handle_fft(req)
+    elif op == "lp":
+        return handle_lp(req)
+    elif op == "qp":
+        return handle_qp(req)
     elif op == "getBlock":
         return handle_getBlock(req)
     elif op == "getBlock1D":

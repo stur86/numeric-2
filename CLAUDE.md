@@ -8,7 +8,7 @@ The original numeric.js is at `../numeric` relative to this project. Its documen
 
 ## Project Structure
 
-- `index.ts` — Public entry point. Exports `Vector`, `Matrix`, `linalg`, `complex`/`isComplex` (+ `Complex`/`Scalar` types), and utility functions.
+- `index.ts` — Public entry point. Exports `Vector`, `Matrix`, `linalg`, `optimize`, `complex`/`isComplex` (+ `Complex`/`Scalar` types), and utility functions.
 - `src/complex.ts` — `Complex = {re, im}` scalar type, `Scalar = number | Complex`, `complex()`, `isComplex()`.
 - `src/base.ts` — `TensorBase` class: base for all tensors, stores `_re`, `_im`, `_shape`.
 - `src/vector.ts` — `Vector` class (1D tensor).
@@ -26,6 +26,10 @@ The original numeric.js is at `../numeric` relative to this project. Its documen
   - `core.ts` — `NumericCore` static class aggregating all core functions (real + complex).
   - `utils.ts` — `UnaryMethod` and `BinaryMethod` dispatchers that resolve tensor type/dtype to core functions.
   - `dot.ts` — Low-level dot product implementations (dotVV, dotMV, dotVM, dotMMsmall, dotMMbig).
+- `src/optimize/` — Public optimization API (`optimize` namespace). Objective/gradient callbacks receive plain `number[]`.
+  - `uncmin.ts` — `gradient` (central differences, adaptive step; retries counted per coordinate, unlike numeric.js which fails above ~20 variables) and `uncmin` (BFGS + backtracking line search, options object).
+  - `lp.ts` — `solveLP(c, A, b, {Aeq, beq, tol, maxit})`: interior-point LP (minimize c·x s.t. Ax ≤ b, Aeq x = beq), and `echelonize`.
+  - `qp.ts` — `solveQP(D, d, A, b, {meq, factorized})`: Goldfarb–Idnani (quadprog qpgen2), minimize ½xᵀDx − dᵀx s.t. Aᵀx ≥ b; columns of A are constraints. Kept 1-based internally like the Fortran. Fixes numeric.js's port, which mistranslated three skip-to-next-iteration loops (it returns infeasible/suboptimal points on some problems; see seeds 42/67/105 in `tests/optimize.test.ts`).
 - `src/linalg/` — Public linear algebra API:
   - `wrap.ts` — `MatrixLike`, `VectorLike` type aliases and `toRawMatrix`/`toRawVector` extraction helpers. Bridges the public API (accepts both `Matrix`/`Vector` and raw arrays) to internal algorithms (operate on raw arrays).
   - `norm.ts` — norm2, norm1, norm2squared, normInf (element-wise over all entries; Frobenius for `norm2` of a matrix).
@@ -224,8 +228,8 @@ A cross-language validation framework that compares numeric-2 results against Nu
 
 - `tests/oracle.py` — Python script that accepts NDJSON on stdin, generates seeded random data with NumPy, computes reference results, and outputs NDJSON responses with both inputs and expected outputs.
 - `tests/runner.ts` — Bun helper that spawns `uv run python tests/oracle.py`, sends requests, and parses responses. Provides `oracle()`, `assertClose()`, `assertClose2D()`, `assertScalarClose()`.
-- `tests/pyproject.toml` — uv project config (numpy dependency). Run `cd tests && uv sync` to install.
-- Test files: `unary.test.ts`, `binary.test.ts`, `reducers.test.ts`, `dot.test.ts`, `linalg.test.ts`, `complex.test.ts`, `eig.test.ts`, `utilities.test.ts`, `complex-dispatch.test.ts`, `elementwise.test.ts` (public API on vectors and matrices), `cx-linalg.test.ts`, `fft.test.ts`, `svd.test.ts` (singular values vs NumPy, plus reconstruction and orthonormality, since singular vectors are sign-ambiguous)
+- `tests/pyproject.toml` — uv project config (numpy and scipy; scipy provides LP/QP references via `linprog` and SLSQP). Run `cd tests && uv sync` to install.
+- Test files: `unary.test.ts`, `binary.test.ts`, `reducers.test.ts`, `dot.test.ts`, `linalg.test.ts`, `complex.test.ts`, `eig.test.ts`, `utilities.test.ts`, `complex-dispatch.test.ts`, `elementwise.test.ts` (public API on vectors and matrices), `cx-linalg.test.ts`, `fft.test.ts`, `optimize.test.ts` (LP vs linprog, QP vs SLSQP, uncmin on known minimizers), `svd.test.ts` (singular values vs NumPy, plus reconstruction and orthonormality, since singular vectors are sign-ambiguous)
 - `cx-linalg.test.ts` covers complex solve/LU/inv/det/dot and complex element-wise ops (incl. complex scalar operands).
 - Element-wise oracle ops accept `"shape": [m, n]` instead of `"n"` to produce matrix inputs; `cx_*` binary ops accept `real_x`/`real_y` to make one operand purely real. Oracle exceptions come back as `{"error": ...}` and the runner raises them as test failures.
 
