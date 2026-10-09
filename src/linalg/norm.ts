@@ -1,48 +1,43 @@
 import { UnaryMethod } from "../core/utils";
-import Vector from "../vector";
-import type { VectorLike } from "./wrap";
-
-function asVector(x: VectorLike): Vector {
-    return Array.isArray(x) ? new Vector(x) : x;
-}
+import { type TensorLike, toTensor } from "./wrap";
 
 
 /**
- * Compute the 2-norm of a vector.
+ * Compute the 2-norm of a vector or matrix.
  * 
- * @param x     A vector.
- * @returns     The 2-norm of the vector.
+ * @param x     A vector or matrix (norms are taken element-wise over all entries).
+ * @returns     The 2-norm of the tensor.
  */
-export function norm2(x: VectorLike): number {
-    return new UnaryMethod(asVector(x), "norm2").invoke();
+export function norm2(x: TensorLike): number {
+    return new UnaryMethod(toTensor(x), "norm2").invoke();
 }
 
 /**
- * Compute the squared 2-norm of a vector.
+ * Compute the squared 2-norm of a vector or matrix.
  * 
- * @param x     A vector.
- * @returns     The squared 2-norm of the vector.
+ * @param x     A vector or matrix (norms are taken element-wise over all entries).
+ * @returns     The squared 2-norm of the tensor.
  */
-export function norm2squared(x: VectorLike): number {
-    return new UnaryMethod(asVector(x), "norm2squared").invoke();
+export function norm2squared(x: TensorLike): number {
+    return new UnaryMethod(toTensor(x), "norm2squared").invoke();
 }
 
 /**
- * Compute the 1-norm of a vector.
+ * Compute the 1-norm of a vector or matrix.
  * 
- * @param x     A vector.
- * @returns     The 1-norm of the vector.
+ * @param x     A vector or matrix (norms are taken element-wise over all entries).
+ * @returns     The 1-norm of the tensor.
  */
-export function norm1(x: VectorLike): number {
-    return new UnaryMethod(asVector(x), "norm1").invoke();
+export function norm1(x: TensorLike): number {
+    return new UnaryMethod(toTensor(x), "norm1").invoke();
 }
 
 /**
- * Compute the infinity-norm of a vector (maximum absolute element).
+ * Compute the infinity-norm of a vector or matrix (maximum absolute element).
  * 
- * @param x     A vector.
- * @returns     The infinity-norm of the vector.
+ * @param x     A vector or matrix (norms are taken element-wise over all entries).
+ * @returns     The infinity-norm of the tensor.
  */
-export function normInf(x: VectorLike): number {
-    return new UnaryMethod(asVector(x), "normInf").invoke();
+export function normInf(x: TensorLike): number {
+    return new UnaryMethod(toTensor(x), "normInf").invoke();
 }

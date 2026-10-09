@@ -19,7 +19,8 @@ function realData<T>(x: T | TensorBase, label: string): T {
 }
 
 export type OracleRequest =
-    | { op: string; seed: number; n: number; variant?: string }
+    | { op: string; seed: number; n: number; variant?: string; real_x?: boolean; real_y?: boolean }
+    | { op: string; seed: number; shape: [number, number]; variant?: string; real_x?: boolean; real_y?: boolean }
     | { op: "dot"; variant: string; seed: number; n?: number; m?: number; p?: number }
     | { op: "solve" | "inv" | "det"; seed: number; n: number };
 
@@ -115,7 +116,15 @@ export async function oracle(req: OracleRequest): Promise<OracleResponse> {
     proc!.stdin.flush();
 
     const responseLine = await readLine();
-    return JSON.parse(responseLine);
+    return checkResponse(JSON.parse(responseLine), req);
+}
+
+/** Raise oracle-side errors (reported as {"error": ...}) as test failures. */
+function checkResponse(resp: any, req: OracleRequest): OracleResponse {
+    if (resp.error !== undefined) {
+        throw new Error(`Oracle error for ${JSON.stringify(req)}: ${resp.error}`);
+    }
+    return resp;
 }
 
 /**
@@ -134,7 +143,7 @@ export async function oracleBatch(reqs: OracleRequest[]): Promise<OracleResponse
     const results: OracleResponse[] = [];
     for (let i = 0; i < reqs.length; i++) {
         const line = await readLine();
-        results.push(JSON.parse(line));
+        results.push(checkResponse(JSON.parse(line), reqs[i]));
     }
     return results;
 }

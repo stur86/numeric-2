@@ -30,6 +30,7 @@ import {
     _re_v_isNaN,
     _re_v_isFinite,
     _re_v_clone,
+    _re_v_conj,
 } from "./maps";
 import {
     _re_v_addVV, _re_v_addVS, _re_v_addSV,
@@ -79,6 +80,9 @@ export default class NumericCore {
     static _re_v_sum = _re_v_sum;
     static _bool_v_all = _bool_v_all;
     static _bool_v_any = _bool_v_any;
+    // any/all on real data use truthiness, so the boolean kernels apply directly
+    static _re_v_all = _bool_v_all as unknown as (x: number[], n: number) => boolean;
+    static _re_v_any = _bool_v_any as unknown as (x: number[], n: number) => boolean;
     // Maps
     static _re_v_sqrt = _re_v_sqrt;
     static _re_v_abs = _re_v_abs;
@@ -97,6 +101,7 @@ export default class NumericCore {
     static _re_v_isNaN = _re_v_isNaN;
     static _re_v_isFinite = _re_v_isFinite;
     static _re_v_clone = _re_v_clone;
+    static _re_v_conj = _re_v_conj;
     // Binary ops
     static _re_v_addVV = _re_v_addVV;
     static _re_v_addVS = _re_v_addVS;

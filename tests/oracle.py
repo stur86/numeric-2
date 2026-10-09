@@ -55,6 +55,15 @@ BINARY_OPS = {
     "div": np.divide,
     "mod": np.fmod,  # JS % uses truncated division, matching np.fmod not np.mod
     "pow": lambda x, y: np.power(np.abs(x), y),  # ensure non-negative base
+    "atan2": np.arctan2,
+    "max": np.maximum,
+    "min": np.minimum,
+    "eq": np.equal,
+    "neq": np.not_equal,
+    "lt": np.less,
+    "gt": np.greater,
+    "leq": np.less_equal,
+    "geq": np.greater_equal,
 }
 
 REDUCERS = {
@@ -63,15 +72,20 @@ REDUCERS = {
     "max": np.max,
     "min": np.min,
     "norm1": lambda x: np.sum(np.abs(x)),
-    "norm2": np.linalg.norm,
-    "norm2squared": lambda x: float(np.dot(x, x)),
+    "norm2": lambda x: np.sqrt(np.sum(x * x)),  # element-wise (Frobenius for matrices)
+    "norm2squared": lambda x: float(np.sum(x * x)),
     "normInf": lambda x: np.max(np.abs(x)),
 }
 
 
+def size(req: dict):
+    """Element-wise ops take either a length "n" or a matrix "shape" [m, n]."""
+    return tuple(req["shape"]) if "shape" in req else req["n"]
+
+
 def handle_unary(req: dict) -> dict:
     rng = np.random.default_rng(req["seed"])
-    n = req["n"]
+    n = size(req)
     op = req["op"]
 
     if op == "sqrt":
@@ -90,7 +104,7 @@ def handle_unary(req: dict) -> dict:
 
 def handle_binary(req: dict) -> dict:
     rng = np.random.default_rng(req["seed"])
-    n = req["n"]
+    n = size(req)
     op = req["op"]
     variant = req["variant"]
 
@@ -129,7 +143,7 @@ def handle_binary(req: dict) -> dict:
 
 def handle_reducer(req: dict) -> dict:
     rng = np.random.default_rng(req["seed"])
-    n = req["n"]
+    n = size(req)
     op = req["op"]
 
     x = rng.standard_normal(n)
@@ -214,7 +228,7 @@ CX_BINARY_OPS = {
 }
 
 CX_REDUCERS = {
-    "cx_norm2": np.linalg.norm,
+    "cx_norm2": lambda x: float(np.sqrt(np.sum(np.abs(x)**2))),
     "cx_norm2squared": lambda x: float(np.sum(np.abs(x)**2)),
     "cx_norm1": lambda x: float(np.sum(np.abs(x))),
     "cx_normInf": lambda x: float(np.max(np.abs(x))),
@@ -230,7 +244,7 @@ def cx_to_parts(z):
 
 def handle_cx_unary(req: dict) -> dict:
     rng = np.random.default_rng(req["seed"])
-    n = req["n"]
+    n = size(req)
     op = req["op"]
 
     x = rng.standard_normal(n) + 1j * rng.standard_normal(n)
@@ -241,7 +255,7 @@ def handle_cx_unary(req: dict) -> dict:
 
 def handle_cx_binary(req: dict) -> dict:
     rng = np.random.default_rng(req["seed"])
-    n = req["n"]
+    n = size(req)
     op = req["op"]
     variant = req["variant"]
 
@@ -277,7 +291,7 @@ def handle_cx_binary(req: dict) -> dict:
 
 def handle_cx_reducer(req: dict) -> dict:
     rng = np.random.default_rng(req["seed"])
-    n = req["n"]
+    n = size(req)
     op = req["op"]
 
     x = rng.standard_normal(n) + 1j * rng.standard_normal(n)
@@ -360,7 +374,7 @@ def process(req: dict) -> dict:
 
     if op in UNARY_OPS:
         return handle_unary(req)
-    elif op in BINARY_OPS:
+    elif op in BINARY_OPS and "variant" in req:  # max/min are also reducers
         return handle_binary(req)
     elif op in REDUCERS:
         return handle_reducer(req)
@@ -397,8 +411,10 @@ def main():
         line = line.strip()
         if not line:
             continue
-        req = json.loads(line)
-        resp = process(req)
+        try:
+            resp = process(json.loads(line))
+        except Exception as e:  # report instead of dying, so later requests still work
+            resp = {"error": f"{type(e).__name__}: {e}"}
         print(json.dumps(resp), flush=True)
 
 

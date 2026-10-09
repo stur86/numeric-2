@@ -64,3 +64,27 @@ export function toRawCxMatrix(x: MatrixLike): CxMatrix {
     }
     return [x, null];
 }
+
+/** A Vector, Matrix, or a raw 1D/2D array. */
+export type TensorLike = VectorLike | MatrixLike;
+
+/** `Matrix` if T is matrix-like, otherwise `Vector`. */
+export type TensorOf<T> = T extends MatrixLike ? Matrix : Vector;
+
+/** Wrap a raw 1D/2D array in a Vector/Matrix; tensors pass through. */
+export function toTensor(x: TensorLike): Vector | Matrix {
+    if (x instanceof Vector || x instanceof Matrix) return x;
+    if (Array.isArray(x[0])) return new Matrix(x as number[][]);
+    return new Vector(x as number[]);
+}
+
+/**
+ * Wrap a raw kernel result as a Vector or Matrix.
+ * Complex results arrive as an [re, im] pair; `complex` says which form to expect.
+ */
+export function wrapTensor(raw: any, complex: boolean, matrix: boolean): Vector | Matrix {
+    if (complex) {
+        return matrix ? new Matrix(raw[0], raw[1]) : new Vector(raw[0], raw[1]);
+    }
+    return matrix ? new Matrix(raw) : new Vector(raw);
+}

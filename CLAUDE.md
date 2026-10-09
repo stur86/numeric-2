@@ -17,7 +17,7 @@ The original numeric.js is at `../numeric` relative to this project. Its documen
   - `reducers.ts` — Generated vector reducers (sum, prod, max, min, norms).
   - `maps.ts` — Generated unary element-wise ops (sqrt, abs, sin, cos, neg, ceil, floor, round, etc.).
   - `binops.ts` — Generated binary element-wise ops with VV/VS/SV variants (add, sub, mul, div, comparisons, etc.).
-  - `extra.reducers.ts` — Hand-written boolean reducers (any, all).
+  - `extra.reducers.ts` — Hand-written boolean reducers (any, all). Also registered in `NumericCore` as `_re_v_any`/`_re_v_all` (truthiness on real data).
   - `cx.maps.ts` — Generated complex unary ops (neg, conj, abs, clone). Return `[number[], number[]]`.
   - `cx.binops.ts` — Generated complex binary ops with VV/VS/SV variants (add, sub, mul, div). Return `[number[], number[]]`.
   - `cx.reducers.ts` — Generated complex reducers (norm2, norm2squared, norm1, normInf). Return `number`.
@@ -26,7 +26,9 @@ The original numeric.js is at `../numeric` relative to this project. Its documen
   - `dot.ts` — Low-level dot product implementations (dotVV, dotMV, dotVM, dotMMsmall, dotMMbig).
 - `src/linalg/` — Public linear algebra API:
   - `wrap.ts` — `MatrixLike`, `VectorLike` type aliases and `toRawMatrix`/`toRawVector` extraction helpers. Bridges the public API (accepts both `Matrix`/`Vector` and raw arrays) to internal algorithms (operate on raw arrays).
-  - `norm.ts` — norm2, norm1, norm2squared, normInf.
+  - `norm.ts` — norm2, norm1, norm2squared, normInf (element-wise over all entries; Frobenius for `norm2` of a matrix).
+  - `elementwise.ts` — Public unary maps on vectors/matrices: sqrt, exp, log, trig, neg, ceil, floor, round, conj, abs (always real), isNaN/isFinite (boolean arrays).
+  - `reduce.ts` — Public reducers over all elements: sum, prod, sup (max), inf (min), any, all. Named after numeric.js, where `max`/`min` are the element-wise binary ops.
   - `arithmetic.ts` — Element-wise binary ops (add, sub, mul, div, etc.) on vectors/scalars. Arithmetic returns `Vector` (complex if either operand is); comparisons return `boolean[]`.
   - `dot.ts` — `dot()` dispatcher + re-exports of low-level dot functions.
   - `lu.ts` — LU decomposition, LUsolve, solve.
@@ -125,11 +127,12 @@ Hand-written (not generated): `extra.reducers.ts` (`_bool_v_any`, `_bool_v_all`)
 
 `UnaryMethod` and `BinaryMethod` bridge the typed tensor world to the raw kernel functions:
 
-1. Inspect the tensor to determine `dtype` (`re` or `cx`) and `optype` (`v`).
-2. Build the full kernel name: `_${dtype}_${optype}_${name}` (unary) or `_${dtype}_${optype}_${name}${variant}` (binary, where variant is VV/VS/SV).
+1. Inspect the tensor to determine `dtype` (`re` or `cx`) and `optype` (`v` for Vector, `m` for Matrix). In binary ops, a complex operand on either side switches to `cx` (the real side gets zero imaginary parts).
+2. Build the full kernel name: `_${dtype}_v_${name}` (unary) or `_${dtype}_v_${name}${variant}` (binary, where variant is VV/VS/SV). **Matrices reuse the vector kernels** — there are no `_m_` kernels.
 3. Look up the function on `NumericCore` by name.
 4. Build the args array: for real ops, `(data, n)`; for complex ops, `(re, im, n)`. Binary ops push both operands' data (with imag=0 for scalar operands in complex mode).
-5. Call and return the raw result.
+5. Call and return the raw result. For matrices, the vector kernel runs once per row: maps/binops return the per-row arrays (`[reRows, imRows]` for complex), and reducers merge the per-row results with `ROW_COMBINERS` (a new reducer must get an entry there to work on matrices).
+6. Unknown kernels raise `Operation <name> is not supported for real/complex tensors`; binary ops check that tensor operands have the same shape.
 
 Callers (e.g. `src/linalg/arithmetic.ts`) use the dispatchers, then wrap raw results back into Vector/Matrix.
 
@@ -137,7 +140,7 @@ Callers (e.g. `src/linalg/arithmetic.ts`) use the dispatchers, then wrap raw res
 
 Core functions follow the pattern `_{dtype}_{optype}_{name}[{variant}]`:
 - `dtype`: `re` (real), `cx` (complex), `bool` (boolean)
-- `optype`: `v` (vector), `m` (matrix — not yet implemented)
+- `optype`: `v` (vector). Matrices are dispatched row-wise onto `v` kernels (dispatcher optype `m`), so kernel names always use `v`.
 - `variant` (binops only): `VV` (vector-vector), `VS` (vector-scalar), `SV` (scalar-vector)
 - Example: `_re_v_addVV`, `_re_v_norm2`, `_bool_v_any`, `_cx_v_mulVV`, `_cx_v_norm2`
 
@@ -203,7 +206,8 @@ A cross-language validation framework that compares numeric-2 results against Nu
 - `tests/oracle.py` — Python script that accepts NDJSON on stdin, generates seeded random data with NumPy, computes reference results, and outputs NDJSON responses with both inputs and expected outputs.
 - `tests/runner.ts` — Bun helper that spawns `uv run python tests/oracle.py`, sends requests, and parses responses. Provides `oracle()`, `assertClose()`, `assertClose2D()`, `assertScalarClose()`.
 - `tests/pyproject.toml` — uv project config (numpy dependency). Run `cd tests && uv sync` to install.
-- Test files: `unary.test.ts`, `binary.test.ts`, `reducers.test.ts`, `dot.test.ts`, `linalg.test.ts`, `complex.test.ts`, `eig.test.ts`, `utilities.test.ts`, `complex-dispatch.test.ts`
+- Test files: `unary.test.ts`, `binary.test.ts`, `reducers.test.ts`, `dot.test.ts`, `linalg.test.ts`, `complex.test.ts`, `eig.test.ts`, `utilities.test.ts`, `complex-dispatch.test.ts`, `elementwise.test.ts` (public API on vectors and matrices)
+- Element-wise oracle ops accept `"shape": [m, n]` instead of `"n"` to produce matrix inputs; `cx_*` binary ops accept `real_x`/`real_y` to make one operand purely real. Oracle exceptions come back as `{"error": ...}` and the runner raises them as test failures.
 
 The oracle returns inputs and expected outputs so the TS side uses the oracle's inputs directly (no cross-language RNG matching needed). Note: JS `%` uses truncated division (`np.fmod`), not floored division (`np.mod`).
 
