@@ -572,6 +572,37 @@ def handle_logic(req: dict) -> dict:
     return {"inputs": inputs, "expected": out}
 
 
+def handle_xoshiro(req: dict) -> dict:
+    """Reference xoshiro128** (from the published C code) seeded through SplitMix32,
+    mirroring numeric-2's RandomGenerator: first raw 32-bit outputs and doubles."""
+    M = 0xFFFFFFFF
+    def rotl(x, k):
+        return ((x << k) | (x >> (32 - k))) & M
+    def splitmix32(a):
+        state = [a & M]
+        def nxt():
+            state[0] = (state[0] + 0x9E3779B9) & M
+            t = state[0] ^ (state[0] >> 16)
+            t = (t * 0x21F0AAAD) & M
+            t ^= t >> 15
+            t = (t * 0x735A2D97) & M
+            return (t ^ (t >> 15)) & M
+        return nxt
+    seed = req["seed"]
+    lo, hi = seed & M, (abs(seed) // 2**32) & M
+    sm = splitmix32(lo ^ ((hi * 0x85EBCA6B) & M) ^ (0x5BD1E995 if seed < 0 else 0))
+    s = [sm(), sm(), sm(), sm()]
+    def next32():
+        result = (rotl((s[1] * 5) & M, 7) * 9) & M
+        t = (s[1] << 9) & M
+        s[2] ^= s[0]; s[3] ^= s[1]; s[1] ^= s[2]; s[0] ^= s[3]; s[2] ^= t
+        s[3] = rotl(s[3], 11)
+        return result
+    raw = [next32() for _ in range(20)]
+    doubles = [((next32() >> 5) * 67108864 + (next32() >> 6)) / 2**53 for _ in range(20)]
+    return {"inputs": {}, "expected": {"raw": raw, "doubles": doubles}}
+
+
 def handle_cx_dot_VV(req: dict) -> dict:
     rng = np.random.default_rng(req["seed"])
     n = req["n"]
@@ -668,6 +699,8 @@ def process(req: dict) -> dict:
         return handle_sparse(req)
     elif op == "logic":
         return handle_logic(req)
+    elif op == "xoshiro":
+        return handle_xoshiro(req)
     elif op == "sparse_solve":
         return handle_sparse_solve(req)
     elif op == "getBlock":

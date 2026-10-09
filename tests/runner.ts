@@ -25,6 +25,7 @@ export type OracleRequest =
     | { op: "svd"; seed: number; m: number; n: number; rank?: number }
     | { op: "fft" | "ifft"; seed: number; n: number; real?: boolean }
     | { op: "lp"; seed: number; n: number; m: number; meq?: number }
+    | { op: "xoshiro"; seed: number }
     | { op: "sparse"; seed: number; m: number; n: number; p?: number; density: number }
     | { op: "sparse_solve"; seed: number; n: number; kind: "random" | "permuted" | "poisson"; density?: number }
     | { op: "ode"; seed: number; problem: "lotka_volterra" | "van_der_pol" | "pendulum" }
