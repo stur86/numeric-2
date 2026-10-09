@@ -27,6 +27,12 @@ const runtimeKey = isBun ? "bun" : "node";
 const outDir = option("out") ?? join(process.cwd(), "benchmarks", "results");
 const libs = option("libs")?.split(",") as LibName[] | undefined;
 
+// Full garbage collection before each measurement (Node needs --expose-gc)
+const gc: (() => void) | undefined = isBun
+    ? () => (globalThis as any).Bun.gc(true)
+    : typeof (globalThis as any).gc === "function" ? (globalThis as any).gc : undefined;
+if (!gc) console.warn("Warning: cannot force garbage collection (run Node with --expose-gc)");
+
 const fmt = (us: number) =>
     Number.isNaN(us) ? "—" : us < 1 ? `${(us * 1000).toFixed(0)} ns` : us < 1000 ? `${us.toFixed(2)} µs` : `${(us / 1000).toFixed(2)} ms`;
 
@@ -37,6 +43,7 @@ const results = await runAll({ numeric, numeric2, mathjs, stdlib }, {
     ...(flag("quick") ? QUICK_TIMING : DEFAULT_TIMING),
     filter: option("filter"),
     libs,
+    gc,
     onResult: (m) => {
         const key = `${m.suite} / ${m.case} [${m.sizeLabel}]`;
         const row = pending.get(key) ?? {};

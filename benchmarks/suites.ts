@@ -772,6 +772,12 @@ export type RunOptions = TimingOptions & {
     libs?: LibName[];
     /** Called after each measurement; may be async (e.g. to yield to the browser). */
     onResult?: (m: Measurement, done: number, total: number) => void | Promise<void>;
+    /**
+     * Forces a full garbage collection. Called before each timed measurement, so
+     * garbage left by earlier libraries (input setup, output checks) is not
+     * collected inside the timed region.
+     */
+    gc?: () => void;
 };
 
 const libObject = (libs: Libs): Record<LibName, any> => ({
@@ -822,6 +828,7 @@ export async function runAll(libs: Libs, opts: RunOptions): Promise<Measurement[
                     m = { ...base, median: NaN, p25: NaN, p75: NaN, min: NaN, batch: 0, samples: 0, error: errors[lib] };
                 } else {
                     const input = prepared[lib], L = libObj[lib], run = c.run[lib]!;
+                    opts.gc?.();
                     m = { ...base, ...measure(() => run(input, L), opts) };
                 }
                 out.push(m);

@@ -32,7 +32,7 @@
     "build:umd-min": "esm2umd Numeric dist/numeric-2.min.js > dist/numeric-2.umd.min.js",
     "build": "npm run build:esm && npm run build:esm-min && npm run build:umd && npm run build:umd-min",
     "bench:bun": "bun run benchmarks/run.ts",
-    "bench:node": "bun build benchmarks/run.ts --target=node --outfile=benchmarks/.build/run-node.mjs && node benchmarks/.build/run-node.mjs",
+    "bench:node": "bun build benchmarks/run.ts --target=node --outfile=benchmarks/.build/run-node.mjs && node --expose-gc benchmarks/.build/run-node.mjs",
     "bench:web": "bun run benchmarks/web/build.ts",
     "bench:serve": "bun run benchmarks/web/serve.ts"
   }
