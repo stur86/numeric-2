@@ -12,6 +12,7 @@ import { CxVectorReducerMetaFunction } from "./cx.reducer";
 import type { CxVectorReducerMetaFunctionArgs } from "./cx.reducer";
 import { CxVectorCxReducerMetaFunction } from "./cx.cxreducer";
 import { SparseBinopMetaFunction } from "./sparse.binop";
+import { InPlaceMapMetaFunction, InPlaceBinopMetaFunction, CxInPlaceMapMetaFunction, CxInPlaceBinopMetaFunction } from "./inplace";
 import type { SparseBinopMetaFunctionArgs } from "./sparse.binop";
 import type { CxVectorCxReducerMetaFunctionArgs } from "./cx.cxreducer";
 
@@ -236,4 +237,43 @@ for (const bArgs of sparseBinopArgs) {
     sparseBinopSource += binop.compileSource() + '\n\n';
 }
 Bun.write(sparseBinopFile, sparseBinopSource);
+console.log("_____\n");
+
+// In-place variants (write into the first argument), reusing the expressions above
+const inplaceFile = targetDir + "inplace.ts";
+console.log(`Generating in-place kernels in ${inplaceFile}:`);
+const findMap = (n: string) => mapArgs.find((a) => a.name === `_re_v_${n}`)!;
+const findBinop = (n: string) => binopArgs.find((a) => a.name === n)!;
+const findCxMap = (n: string) => cxMapArgs.find((a) => a.name === `_cx_v_${n}`)!;
+const findCxBinop = (n: string) => cxBinopArgs.find((a) => a.name === n)! as { name: string; expressionRe: string; expressionIm: string };
+
+const inplaceRealMaps = ["sqrt", "abs", "exp", "log", "sin", "cos", "tan", "asin", "acos", "atan", "neg", "ceil", "floor", "round", "conj", "reciprocal", "bnot"];
+const inplaceRealBinops = ["add", "sub", "mul", "div", "mod", "pow", "atan2", "max", "min", "band", "bor", "bxor", "lshift", "rshift", "rrshift", "trunc"];
+const inplaceCxMaps = ["neg", "conj", "exp", "log", "sqrt", "sin", "cos", "reciprocal"];
+const inplaceCxBinops = ["add", "sub", "mul", "div"];
+
+let inplaceSource = "";
+for (const n of inplaceRealMaps) {
+    const f = new InPlaceMapMetaFunction(n, findMap(n).mapElement!);
+    console.log(`  ${f.fullName}`);
+    inplaceSource += f.compileSource() + '\n\n';
+}
+for (const n of inplaceRealBinops) {
+    const f = new InPlaceBinopMetaFunction(n, findBinop(n).expression);
+    console.log(`  _re_v_i${n} (VV, VS)`);
+    inplaceSource += f.compileAllSource() + '\n\n';
+}
+for (const n of inplaceCxMaps) {
+    const a = findCxMap(n);
+    const f = new CxInPlaceMapMetaFunction(n, a.mapRe, a.mapIm, a.mapPre ?? "");
+    console.log(`  ${f.fullName}`);
+    inplaceSource += f.compileSource() + '\n\n';
+}
+for (const n of inplaceCxBinops) {
+    const a = findCxBinop(n);
+    const f = new CxInPlaceBinopMetaFunction(n, a.expressionRe, a.expressionIm);
+    console.log(`  _cx_v_i${n} (VV, VS)`);
+    inplaceSource += f.compileAllSource() + '\n\n';
+}
+Bun.write(inplaceFile, inplaceSource);
 console.log("_____\n");

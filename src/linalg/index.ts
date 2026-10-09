@@ -44,3 +44,9 @@ export type { SVDResult };
 import { fft, ifft } from "./fft";
 
 export { fft, ifft };
+
+export {
+    iadd, isub, imul, idiv, imod, ipow, iatan2, imax, imin, iband, ibor, ibxor, ilshift, irshift, irrshift, itrunc,
+    isqrt, iabs, iexp, ilog, isin, icos, itan, iasin, iacos, iatan, ineg, iceil, ifloor, iround, iconj, ireciprocal, ibnot,
+} from "./inplace";
+export type { InPlaceTarget } from "./inplace";

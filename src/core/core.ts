@@ -114,6 +114,73 @@ import {
     _re_s_subSS,
     _re_s_mulSS,
 } from "./sparse.binops";
+import {
+    _re_v_isqrt,
+    _re_v_iabs,
+    _re_v_iexp,
+    _re_v_ilog,
+    _re_v_isin,
+    _re_v_icos,
+    _re_v_itan,
+    _re_v_iasin,
+    _re_v_iacos,
+    _re_v_iatan,
+    _re_v_ineg,
+    _re_v_iceil,
+    _re_v_ifloor,
+    _re_v_iround,
+    _re_v_iconj,
+    _re_v_ireciprocal,
+    _re_v_ibnot,
+    _re_v_iaddVV,
+    _re_v_iaddVS,
+    _re_v_isubVV,
+    _re_v_isubVS,
+    _re_v_imulVV,
+    _re_v_imulVS,
+    _re_v_idivVV,
+    _re_v_idivVS,
+    _re_v_imodVV,
+    _re_v_imodVS,
+    _re_v_ipowVV,
+    _re_v_ipowVS,
+    _re_v_iatan2VV,
+    _re_v_iatan2VS,
+    _re_v_imaxVV,
+    _re_v_imaxVS,
+    _re_v_iminVV,
+    _re_v_iminVS,
+    _re_v_ibandVV,
+    _re_v_ibandVS,
+    _re_v_iborVV,
+    _re_v_iborVS,
+    _re_v_ibxorVV,
+    _re_v_ibxorVS,
+    _re_v_ilshiftVV,
+    _re_v_ilshiftVS,
+    _re_v_irshiftVV,
+    _re_v_irshiftVS,
+    _re_v_irrshiftVV,
+    _re_v_irrshiftVS,
+    _re_v_itruncVV,
+    _re_v_itruncVS,
+    _cx_v_ineg,
+    _cx_v_iconj,
+    _cx_v_iexp,
+    _cx_v_ilog,
+    _cx_v_isqrt,
+    _cx_v_isin,
+    _cx_v_icos,
+    _cx_v_ireciprocal,
+    _cx_v_iaddVV,
+    _cx_v_iaddVS,
+    _cx_v_isubVV,
+    _cx_v_isubVS,
+    _cx_v_imulVV,
+    _cx_v_imulVS,
+    _cx_v_idivVV,
+    _cx_v_idivVS,
+} from "./inplace";
 
 export default class NumericCore {
     // Reducers
@@ -268,4 +335,71 @@ export default class NumericCore {
     static _re_s_addSS = _re_s_addSS;
     static _re_s_subSS = _re_s_subSS;
     static _re_s_mulSS = _re_s_mulSS;
-};
+
+    // In-place kernels (write into the first argument)
+    static _re_v_isqrt = _re_v_isqrt;
+    static _re_v_iabs = _re_v_iabs;
+    static _re_v_iexp = _re_v_iexp;
+    static _re_v_ilog = _re_v_ilog;
+    static _re_v_isin = _re_v_isin;
+    static _re_v_icos = _re_v_icos;
+    static _re_v_itan = _re_v_itan;
+    static _re_v_iasin = _re_v_iasin;
+    static _re_v_iacos = _re_v_iacos;
+    static _re_v_iatan = _re_v_iatan;
+    static _re_v_ineg = _re_v_ineg;
+    static _re_v_iceil = _re_v_iceil;
+    static _re_v_ifloor = _re_v_ifloor;
+    static _re_v_iround = _re_v_iround;
+    static _re_v_iconj = _re_v_iconj;
+    static _re_v_ireciprocal = _re_v_ireciprocal;
+    static _re_v_ibnot = _re_v_ibnot;
+    static _re_v_iaddVV = _re_v_iaddVV;
+    static _re_v_iaddVS = _re_v_iaddVS;
+    static _re_v_isubVV = _re_v_isubVV;
+    static _re_v_isubVS = _re_v_isubVS;
+    static _re_v_imulVV = _re_v_imulVV;
+    static _re_v_imulVS = _re_v_imulVS;
+    static _re_v_idivVV = _re_v_idivVV;
+    static _re_v_idivVS = _re_v_idivVS;
+    static _re_v_imodVV = _re_v_imodVV;
+    static _re_v_imodVS = _re_v_imodVS;
+    static _re_v_ipowVV = _re_v_ipowVV;
+    static _re_v_ipowVS = _re_v_ipowVS;
+    static _re_v_iatan2VV = _re_v_iatan2VV;
+    static _re_v_iatan2VS = _re_v_iatan2VS;
+    static _re_v_imaxVV = _re_v_imaxVV;
+    static _re_v_imaxVS = _re_v_imaxVS;
+    static _re_v_iminVV = _re_v_iminVV;
+    static _re_v_iminVS = _re_v_iminVS;
+    static _re_v_ibandVV = _re_v_ibandVV;
+    static _re_v_ibandVS = _re_v_ibandVS;
+    static _re_v_iborVV = _re_v_iborVV;
+    static _re_v_iborVS = _re_v_iborVS;
+    static _re_v_ibxorVV = _re_v_ibxorVV;
+    static _re_v_ibxorVS = _re_v_ibxorVS;
+    static _re_v_ilshiftVV = _re_v_ilshiftVV;
+    static _re_v_ilshiftVS = _re_v_ilshiftVS;
+    static _re_v_irshiftVV = _re_v_irshiftVV;
+    static _re_v_irshiftVS = _re_v_irshiftVS;
+    static _re_v_irrshiftVV = _re_v_irrshiftVV;
+    static _re_v_irrshiftVS = _re_v_irrshiftVS;
+    static _re_v_itruncVV = _re_v_itruncVV;
+    static _re_v_itruncVS = _re_v_itruncVS;
+    static _cx_v_ineg = _cx_v_ineg;
+    static _cx_v_iconj = _cx_v_iconj;
+    static _cx_v_iexp = _cx_v_iexp;
+    static _cx_v_ilog = _cx_v_ilog;
+    static _cx_v_isqrt = _cx_v_isqrt;
+    static _cx_v_isin = _cx_v_isin;
+    static _cx_v_icos = _cx_v_icos;
+    static _cx_v_ireciprocal = _cx_v_ireciprocal;
+    static _cx_v_iaddVV = _cx_v_iaddVV;
+    static _cx_v_iaddVS = _cx_v_iaddVS;
+    static _cx_v_isubVV = _cx_v_isubVV;
+    static _cx_v_isubVS = _cx_v_isubVS;
+    static _cx_v_imulVV = _cx_v_imulVV;
+    static _cx_v_imulVS = _cx_v_imulVS;
+    static _cx_v_idivVV = _cx_v_idivVV;
+    static _cx_v_idivVS = _cx_v_idivVS;
+}

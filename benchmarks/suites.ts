@@ -330,6 +330,21 @@ export function buildCases(libs: Libs): Case[] {
             check: (a, b) => JSON.stringify(a!.re) === JSON.stringify(b!.re),
         },
 
+        {
+            // Each call keeps adding y into the same x; outputs are compared after the first call
+            suite: "Element-wise (vectors)", name: "x += y (in place)", sizes: VEC_SIZES, sizeLabel: vecLabel,
+            // Separate copies per library: in-place ops would otherwise write into each other's input
+            setup: (n, rng) => {
+                const x = randVec(n, rng), y = randVec(n, rng);
+                return { "numeric-2": [V(x.slice()), V(y)], numeric: [x.slice(), y], stdlib: [f64(x), f64(y)] };
+            },
+            run: {
+                "numeric-2": ([x, y]) => L.iadd(x, y),
+                numeric: ([x, y], nm) => nm.addeq(x, y),
+                stdlib: ([x, y], s) => { s.daxpy(x.length, 1.0, y, 1, x, 1); return x; },
+            },
+        },
+
         // Element-wise on matrices
         {
             suite: "Element-wise (matrices)", name: "add A + B", sizes: MAT_SIZES, sizeLabel: matLabel,
@@ -810,7 +825,8 @@ export async function runAll(libs: Libs, opts: RunOptions): Promise<Measurement[
                 }
                 try {
                     const raw = c.run[lib]!(prepared[lib], libObj[lib]);
-                    outputs[lib] = (c.plain?.[lib] ?? toPlain)(raw, size);
+                    // Snapshot: in-place ops return their input, which timing keeps modifying
+                    outputs[lib] = structuredClone((c.plain?.[lib] ?? toPlain)(raw, size));
                 } catch (e) {
                     errors[lib] = String((e as Error)?.message ?? e);
                 }

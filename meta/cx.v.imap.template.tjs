@@ -1,0 +1,10 @@
+export function $NAME(x_re: number[], x_im: number[], n: number): [number[], number[]] {
+    let i = n-1;
+    for (; i >= 0; i -= 1) {
+        $MAP_PRE
+        const t_re = $MAP_RE;
+        x_im[i] = $MAP_IM;
+        x_re[i] = t_re;
+    }
+    return [x_re, x_im];
+}

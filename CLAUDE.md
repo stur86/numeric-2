@@ -44,6 +44,7 @@ The original numeric.js is at `../numeric` relative to this project. Its documen
   - `norm.ts` — norm2, norm1, norm2squared, normInf (element-wise over all entries; Frobenius for `norm2` of a matrix).
   - `elementwise.ts` — Public unary maps on vectors/matrices: sqrt, exp, log, trig, neg, ceil, floor, round, conj, abs (always real), isNaN/isFinite (boolean arrays).
   - `reduce.ts` — Public reducers over all elements: sum, prod, sup (max), inf (min), any, all. Named after numeric.js, where `max`/`min` are the element-wise binary ops.
+  - `inplace.ts` — In-place element-wise ops (`iadd`, `isub`, `imul`, `idiv`, `imod`, `ipow`, `iatan2`, `imax`, `imin`, bitwise `iband`…`irrshift`, `itrunc`; unary `isqrt`, `iexp`, `ilog`, `isin`, `icos`, `ineg`, `iconj`, `ireciprocal`, …): overwrite and return the first argument (Vector, Matrix or raw array), using generated `_re_v_i*` / `_cx_v_i*` kernels. Complex into real throws (promote explicitly); ops without a complex kernel throw on complex targets.
   - `arithmetic.ts` — Element-wise binary ops (add, sub, mul, div, etc.) on vectors/scalars. Arithmetic returns `Vector` (complex if either operand is); comparisons return `boolean[]`.
   - `dot.ts` — `dot()` dispatcher + re-exports of low-level dot functions.
   - `lu.ts` — LU decomposition, LUsolve, solve.
@@ -137,6 +138,7 @@ Each template is a `.tjs` file with `$PLACEHOLDER` tokens that the meta class fi
 | `CxVectorBinopMetaFunction` | `meta/cx.binop.ts` | `cx.v.binop.template.tjs` | `{ name, expressionRe, expressionIm }` |
 | `CxVectorReducerMetaFunction` | `meta/cx.reducer.ts` | `cx.v.reducer.template.tjs` | `{ name, reduceElement, reduceOperator?, initElement?, resultTransform? }` |
 | `CxVectorCxReducerMetaFunction` | `meta/cx.cxreducer.ts` | `cx.v.cxreducer.template.tjs` | `{ name, reduceRe, reduceIm, initRe?, initIm? }` |
+| `InPlaceMapMetaFunction`, `InPlaceBinopMetaFunction`, `CxInPlaceMapMetaFunction`, `CxInPlaceBinopMetaFunction` | `meta/inplace.ts` | `v.imap`, `v.ibinop`, `cx.v.imap`, `cx.v.ibinop` templates | `(name, expression…)`; in-place variants (VV/VS only) reusing the regular ops' expressions, looked up by name in `generate.ts` |
 | `SparseBinopMetaFunction` | `meta/sparse.binop.ts` | `s.binop.template.tjs` | `{ name, expression }` (x_i, y_i; merges two sorted CCS patterns, drops zeros — only ops with op(0,0)=0) |
 
 ### Generated output files
@@ -150,6 +152,7 @@ Each template is a `.tjs` file with `$PLACEHOLDER` tokens that the meta class fi
 | `generate.ts` cx binops section | `src/core/cx.binops.ts` | `_cx_v_addVV/VS/SV`, `_cx_v_mulVV/VS/SV`, etc. |
 | `generate.ts` cx reducers section | `src/core/cx.reducers.ts` | `_cx_v_norm2`, `_cx_v_norm2squared`, `_cx_v_norm1`, `_cx_v_normInf` |
 | `generate.ts` cx-valued reducers section | `src/core/cx.cxreducers.ts` | `_cx_v_sum`, `_cx_v_prod` |
+| `generate.ts` in-place section | `src/core/inplace.ts` | `_re_v_iaddVV/VS`, `_re_v_isqrt`, `_cx_v_imulVV/VS`, `_cx_v_iexp`, etc. |
 | `generate.ts` sparse binops section | `src/core/sparse.binops.ts` | `_re_s_addSS`, `_re_s_subSS`, `_re_s_mulSS` |
 
 Hand-written (not generated): `extra.reducers.ts` (`_bool_v_any`, `_bool_v_all`), `dot.ts`.
@@ -204,6 +207,7 @@ Following the original numeric.js:
 - Constructors (`new Vector(re, im)`, `new Matrix(re, im)`) wrap the given arrays **without copying**, and `.real`/`.imag` expose the internal arrays. Use `clone()` for an independent copy.
 - Block/slice ranges are half-open (`[r0, r1)`, like `Array.slice`); numeric.js used inclusive ends.
 - Writing complex values into a real tensor (`set`, `setRow`, `setBlock`, in-place ops) **throws**; promotion is explicit via `promoteToComplex()`.
+- In-place ops mutate their target (and therefore any array a tensor was built from). Benchmark cases with in-place ops must give each library its own input copy; the runner snapshots outputs (`structuredClone`) before timing.
 - Logical ops (`and`, `or`, `not`) return booleans and accept boolean arrays (numeric.js's `and`/`or` returned an operand, like JS `&&`/`||`). Bitwise ops (`band`, `bor`, `bxor`, `bnot`, `lshift`, `rshift`, `rrshift`) follow JS 32-bit integer semantics.
 
 ## Public API Pattern
