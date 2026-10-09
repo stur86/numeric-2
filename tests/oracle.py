@@ -392,6 +392,17 @@ def handle_svd(req: dict) -> dict:
     return {"inputs": {"A": A.tolist()}, "expected": np.linalg.svd(A, compute_uv=False).tolist()}
 
 
+def handle_fft(req: dict) -> dict:
+    """fft / ifft of a random signal (real if req["real"])."""
+    rng = np.random.default_rng(req["seed"])
+    n = req["n"]
+    x = rng.standard_normal(n)
+    if not req.get("real"):
+        x = x + 1j * rng.standard_normal(n)
+    fn = np.fft.fft if req["op"] == "fft" else np.fft.ifft
+    return {"inputs": {"x": cx_to_parts(x + 0j)}, "expected": cx_to_parts(fn(x))}
+
+
 def handle_cx_dot_VV(req: dict) -> dict:
     rng = np.random.default_rng(req["seed"])
     n = req["n"]
@@ -474,6 +485,8 @@ def process(req: dict) -> dict:
         return handle_cx_dot(req)
     elif op == "svd":
         return handle_svd(req)
+    elif op in ("fft", "ifft"):
+        return handle_fft(req)
     elif op == "getBlock":
         return handle_getBlock(req)
     elif op == "getBlock1D":

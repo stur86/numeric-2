@@ -23,6 +23,7 @@ export type OracleRequest =
     | { op: string; seed: number; shape: [number, number]; variant?: string; real_x?: boolean; real_y?: boolean }
     | { op: "cx_solve" | "cx_inv" | "cx_det"; seed: number; n: number; real_A?: boolean; real_b?: boolean }
     | { op: "svd"; seed: number; m: number; n: number; rank?: number }
+    | { op: "fft" | "ifft"; seed: number; n: number; real?: boolean }
     | { op: "cx_dot"; variant: "MV" | "VM" | "MM"; seed: number; m: number; n: number; p?: number; real_x?: boolean; real_y?: boolean }
     | { op: "dot"; variant: string; seed: number; n?: number; m?: number; p?: number }
     | { op: "solve" | "inv" | "det"; seed: number; n: number };

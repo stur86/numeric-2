@@ -40,3 +40,7 @@ import type { SVDResult } from "./svd";
 
 export { svd };
 export type { SVDResult };
+
+import { fft, ifft } from "./fft";
+
+export { fft, ifft };

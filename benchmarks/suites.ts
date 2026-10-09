@@ -459,6 +459,24 @@ export function buildCases(libs: Libs): Case[] {
             },
         },
 
+        // Signal processing
+        {
+            suite: "Signal processing", name: "fft(x)", sizes: [1000, 1024, 65536], sizeLabel: vecLabel,
+            setup: (n, rng, l) => {
+                const xr = randVec(n, rng), xi = randVec(n, rng);
+                return {
+                    "numeric-2": V(xr, xi),
+                    numeric: l.numeric ? l.numeric.t(xr, xi) : null,
+                    mathjs: MJ ? xr.map((r, i) => MJ.complex(r, xi[i])) : null,
+                };
+            },
+            run: {
+                "numeric-2": (x) => L.fft(x),
+                numeric: (x) => x.fft(),
+                mathjs: (x, m) => m.fft(x),
+            },
+        },
+
         // Complex
         {
             suite: "Complex", name: "mul x * y", sizes: VEC_SIZES, sizeLabel: vecLabel,
