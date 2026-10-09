@@ -70,8 +70,8 @@ const mapArgs: VectorMapMetaFunctionArgs[] = [
     { name: '_re_v_ceil', mapElement: 'Math.ceil(x_i)' },
     { name: '_re_v_floor', mapElement: 'Math.floor(x_i)' },
     { name: '_re_v_round', mapElement: 'Math.round(x_i)' },
-    { name: '_re_v_isNaN', mapElement: 'Number.isNaN(x_i)' },
-    { name: '_re_v_isFinite', mapElement: 'Number.isFinite(x_i)' },
+    { name: '_re_v_isNaN', mapElement: 'Number.isNaN(x_i)', returnType: 'boolean' },
+    { name: '_re_v_isFinite', mapElement: 'Number.isFinite(x_i)', returnType: 'boolean' },
     { name: '_re_v_clone', mapElement: 'x_i' },
     { name: '_re_v_conj', mapElement: 'x_i' },
 ];

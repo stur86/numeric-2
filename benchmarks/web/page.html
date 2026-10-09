@@ -1,0 +1,239 @@
+<title>numeric-2 Benchmarks</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+/* Layout: one reading column; summary tiles → controls → chart card → table → method notes. */
+:root {
+  --plane: #f6f6f3;
+  --surface: #fcfcfb;
+  --ink: #0b0b0b;
+  --ink-2: #52514e;
+  --muted: #7b7973;
+  --grid: #e1e0d9;
+  --axis: #c3c2b7;
+  --ring: rgba(11, 11, 11, 0.10);
+  --env-bun: #2a78d6;
+  --env-node: #eb6834;
+  --env-browser: #1baf7a;
+  --good: #0ca30c;
+  --good-text: #006300;
+  --critical: #d03b3b;
+  --wash: rgba(42, 120, 214, 0.08);
+  --font-sans: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --plane: #0d0d0d; --surface: #1a1a19; --ink: #ffffff; --ink-2: #c3c2b7; --muted: #8f8d86;
+    --grid: #2c2c2a; --axis: #45453f; --ring: rgba(255, 255, 255, 0.10);
+    --env-bun: #3987e5; --env-node: #d95926; --env-browser: #199e70;
+    --good-text: #0ca30c; --wash: rgba(57, 135, 229, 0.14);
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --plane: #0d0d0d; --surface: #1a1a19; --ink: #ffffff; --ink-2: #c3c2b7; --muted: #8f8d86;
+  --grid: #2c2c2a; --axis: #45453f; --ring: rgba(255, 255, 255, 0.10);
+  --env-bun: #3987e5; --env-node: #d95926; --env-browser: #199e70;
+  --good-text: #0ca30c; --wash: rgba(57, 135, 229, 0.14);
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body {
+  background: var(--plane);
+  color: var(--ink);
+  font: 15px/1.5 var(--font-sans);
+  padding-inline: 16px;
+  padding-block: 28px 56px;
+}
+main { max-width: 1080px; margin-inline: auto; display: flex; flex-direction: column; gap: 28px; }
+h1, h2 { text-wrap: balance; margin: 0; font-weight: 600; letter-spacing: -0.01em; }
+h1 { font-size: 1.75rem; line-height: 1.2; }
+h2 { font-size: 1.1rem; }
+p { margin: 0; max-width: 68ch; }
+code, .num { font-family: var(--font-mono); font-size: 0.92em; }
+.num { font-variant-numeric: tabular-nums; }
+.muted { color: var(--muted); }
+.ink-2 { color: var(--ink-2); }
+
+header { display: flex; flex-direction: column; gap: 10px; }
+.eyebrow { font: 500 0.75rem/1 var(--font-mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+.lede { color: var(--ink-2); }
+
+/* Environment summary */
+.envs { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; }
+.env {
+  background: var(--surface); border: 1px solid var(--ring); border-radius: 10px;
+  padding: 16px; display: flex; flex-direction: column; gap: 8px; min-width: 0;
+}
+.env-name { display: flex; align-items: center; gap: 8px; font-weight: 600; }
+.key { width: 14px; height: 3px; border-radius: 2px; flex: none; }
+.key.dot { width: 10px; height: 10px; border-radius: 50%; }
+.env-figure { font-size: 2rem; font-weight: 600; line-height: 1.1; letter-spacing: -0.02em; }
+.env-figure small { font-size: 0.9rem; font-weight: 400; color: var(--ink-2); letter-spacing: 0; }
+.env-meta { font-size: 0.85rem; color: var(--ink-2); }
+.env-meta .num { font-size: 0.8rem; }
+
+.status { display: inline-flex; align-items: center; gap: 6px; font-size: 0.85rem; }
+.status svg { flex: none; }
+.status.good { color: var(--good-text); }
+.status.bad { color: var(--critical); }
+
+/* Controls */
+.controls { display: flex; flex-wrap: wrap; gap: 12px 20px; align-items: center; }
+.seg { display: inline-flex; flex-wrap: wrap; gap: 4px; padding: 3px; border-radius: 8px; background: var(--surface); border: 1px solid var(--ring); }
+.seg button {
+  font: 500 0.85rem/1 var(--font-sans); color: var(--ink-2); background: transparent; border: 0;
+  padding: 7px 10px; border-radius: 6px; cursor: pointer;
+}
+.seg button:hover { background: var(--wash); color: var(--ink); }
+.seg button[aria-pressed="true"] { background: var(--ink); color: var(--surface); }
+.toggles { display: inline-flex; flex-wrap: wrap; gap: 12px; font-size: 0.85rem; }
+.toggles label { display: inline-flex; align-items: center; gap: 6px; cursor: pointer; }
+button:focus-visible, .row-hit:focus-visible, input:focus-visible, summary:focus-visible { outline: 2px solid var(--env-bun); outline-offset: 2px; }
+
+.btn {
+  font: 500 0.88rem/1 var(--font-sans); padding: 9px 14px; border-radius: 7px; cursor: pointer;
+  border: 1px solid var(--ink); background: var(--ink); color: var(--surface);
+}
+.btn.secondary { background: transparent; color: var(--ink); border-color: var(--axis); }
+.btn:disabled { opacity: 0.45; cursor: progress; }
+
+/* Chart */
+.card { background: var(--surface); border: 1px solid var(--ring); border-radius: 10px; padding: 18px 18px 12px; position: relative; min-width: 0; }
+.card-head { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px 16px; align-items: baseline; margin-bottom: 10px; }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 0.85rem; color: var(--ink-2); }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+#chart { width: 100%; overflow-x: auto; }
+#chart svg { display: block; }
+#chart text { font-family: var(--font-sans); }
+.tick text, .axis-note { fill: var(--muted); font-size: 11px; }
+.row-label { fill: var(--ink-2); font-size: 12px; font-family: var(--font-mono) !important; }
+.group-label { fill: var(--ink); font-size: 13px; font-weight: 600; }
+.row-hit { fill: transparent; cursor: default; }
+.row-hit:hover, .row-hit.active { fill: var(--wash); }
+.empty { padding: 32px 8px; color: var(--ink-2); }
+
+.tooltip {
+  position: absolute; pointer-events: none; z-index: 5; min-width: 220px; max-width: min(340px, calc(100% - 24px));
+  background: var(--surface); color: var(--ink); border: 1px solid var(--ring); border-radius: 8px;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.16); padding: 10px 12px; font-size: 0.82rem;
+}
+.tooltip h3 { margin: 0 0 6px; font-size: 0.85rem; font-weight: 600; }
+.tooltip table { border-collapse: collapse; width: 100%; }
+.tooltip td { padding: 2px 0; vertical-align: baseline; }
+.tooltip td + td { padding-left: 10px; text-align: right; }
+.tooltip .v { font-weight: 600; font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+.tooltip .sub { color: var(--muted); font-size: 0.75rem; }
+.tooltip .line-key { display: inline-block; width: 12px; height: 2px; vertical-align: middle; margin-right: 6px; border-radius: 1px; }
+
+/* Run panel */
+.run { display: flex; flex-wrap: wrap; gap: 10px 14px; align-items: center; }
+.progress { flex: 1 1 240px; min-width: 0; display: flex; flex-direction: column; gap: 4px; font-size: 0.82rem; color: var(--ink-2); }
+.bar { height: 4px; background: var(--grid); border-radius: 2px; overflow: hidden; }
+.bar > div { height: 100%; width: 0; background: var(--env-browser); transition: width 0.2s; }
+@media (prefers-reduced-motion: reduce) { .bar > div { transition: none; } }
+
+/* Table */
+.table-wrap { overflow-x: auto; background: var(--surface); border: 1px solid var(--ring); border-radius: 10px; }
+table.results { border-collapse: collapse; width: 100%; font-size: 0.84rem; }
+.results th, .results td { padding: 7px 10px; text-align: right; white-space: nowrap; border-bottom: 1px solid var(--grid); }
+.results th { font-weight: 500; color: var(--ink-2); font-size: 0.78rem; position: sticky; top: 0; background: var(--surface); }
+.results th.env-col { border-bottom: 2px solid var(--env-color); }
+.results td:first-child, .results th:first-child, .results td:nth-child(2), .results th:nth-child(2) { text-align: left; }
+.results td { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+.results td:first-child { font-family: var(--font-sans); }
+.results tr.group-start td { border-top: 1px solid var(--axis); }
+.results .faster { color: var(--good-text); font-weight: 500; }
+.results .slower { color: var(--critical); font-weight: 500; }
+
+details.method { background: var(--surface); border: 1px solid var(--ring); border-radius: 10px; padding: 14px 18px; }
+details.method summary { cursor: pointer; font-weight: 600; }
+details.method[open] summary { margin-bottom: 10px; }
+.method-body { display: flex; flex-direction: column; gap: 10px; color: var(--ink-2); }
+.method-body li { margin-bottom: 4px; }
+.method-body ul { margin: 0; padding-left: 20px; max-width: 72ch; }
+footer { color: var(--muted); font-size: 0.82rem; }
+</style>
+
+<main>
+  <header>
+    <span class="eyebrow">numeric.js 1.2.6 → numeric-2</span>
+    <h1>numeric-2 Benchmarks</h1>
+    <p class="lede">How the TypeScript port compares with the original numeric.js, calling each library's public API on identical inputs. Results come from server runs on Bun and Node, and from this browser if you run the suite here.</p>
+  </header>
+
+  <section class="envs" id="envs" aria-label="Environments"></section>
+
+  <section class="card" aria-labelledby="run-title">
+    <div class="card-head">
+      <h2 id="run-title">Run in this browser</h2>
+      <span class="muted" id="browser-libs"></span>
+    </div>
+    <div class="run">
+      <button class="btn" id="run-quick" type="button">Quick run (about 30 s)</button>
+      <button class="btn secondary" id="run-full" type="button">Full run (2–4 min)</button>
+      <button class="btn secondary" id="copy-json" type="button" hidden>Copy results as JSON</button>
+      <div class="progress" id="progress" hidden>
+        <span id="progress-text">Starting…</span>
+        <div class="bar"><div id="progress-bar"></div></div>
+      </div>
+    </div>
+  </section>
+
+  <div class="controls" role="group" aria-label="Filters">
+    <div class="seg" id="metric" role="group" aria-label="Metric">
+      <button type="button" data-metric="ratio" aria-pressed="true">Relative speed</button>
+      <button type="button" data-metric="time" aria-pressed="false">Time per call</button>
+    </div>
+    <div class="seg" id="suites" role="group" aria-label="Suite"></div>
+    <div class="toggles" id="env-toggles" role="group" aria-label="Environments shown"></div>
+  </div>
+
+  <section class="card" aria-labelledby="chart-title">
+    <div class="card-head">
+      <h2 id="chart-title">Speed of numeric-2 relative to numeric.js</h2>
+      <div class="legend" id="legend"></div>
+    </div>
+    <div id="chart"></div>
+    <div class="tooltip" id="tooltip" hidden></div>
+  </section>
+
+  <section aria-labelledby="table-title" style="display:flex;flex-direction:column;gap:10px">
+    <h2 id="table-title">All measurements</h2>
+    <p class="ink-2">Median time per call. Relative speed is numeric.js time divided by numeric-2 time, so numeric.js is 1×: 0.5× means numeric-2 takes twice as long, 2× means it takes half as long.</p>
+    <div class="table-wrap"><table class="results" id="table"></table></div>
+  </section>
+
+  <details class="method">
+    <summary>How these numbers are produced</summary>
+    <div class="method-body">
+      <ul>
+        <li>Each case runs the same seeded random input through both libraries. Inputs are converted to each library's own types before timing (numeric-2 <code>Vector</code>/<code>Matrix</code>, numeric.js arrays or <code>numeric.t</code> for complex values). Wrapping the result is part of the timed call.</li>
+        <li>The timer warms up each call, picks a batch size so one batch takes about 25 ms (10–15 ms in a quick run), then records 15 batches (7 in a quick run). The chart shows the median; whiskers and the tooltip show the 25th–75th percentile range.</li>
+        <li>Before timing, both outputs are compared. "Match" means they agree to a relative tolerance of 10<sup>−8</sup>; eigenvalues are compared as unordered sets; LU outputs use different packed layouts and are not compared.</li>
+        <li>Server runs use <code>bun run bench:bun</code> and <code>bun run bench:node</code>; numeric-2 runs from source on Bun and from a bundled build on Node. This page runs the browser bundle and loads numeric.js 1.2.6 from jsDelivr.</li>
+        <li>numeric.js generates code with <code>new Function</code> while it loads. Pages whose Content Security Policy forbids <code>eval</code> cannot load it at all; numeric-2 has no such dependency. The browser card above reports which case applies here.</li>
+        <li>Machines vary and so does noise: treat relative speeds within about ±15% of 1× as a tie.</li>
+      </ul>
+    </div>
+  </details>
+
+  <footer id="footer"></footer>
+</main>
+
+<script>
+  // Record why numeric.js might fail to load (CSP blocking eval, network errors)
+  window.__numericLoad = { errors: [] };
+  addEventListener("securitypolicyviolation", function (e) {
+    window.__numericLoad.errors.push("Content Security Policy blocked " + (e.blockedURI || "a resource") + " (" + e.violatedDirective + ")");
+  });
+  addEventListener("error", function (e) {
+    if (e.filename && e.filename.indexOf("numeric-1.2.6") >= 0) window.__numericLoad.errors.push(e.message);
+  }, true);
+</script>
+<script src="https://cdn.jsdelivr.net/npm/numeric@1.2.6/numeric-1.2.6.min.js" onerror="window.__numericLoad.errors.push('numeric.js could not be downloaded from jsDelivr')"></script>
+<script type="module" src="bench.js"></script>

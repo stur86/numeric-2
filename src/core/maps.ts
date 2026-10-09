@@ -124,7 +124,7 @@ export function _re_v_round(x: number[], n: number): number[] {
     return ans;
 }
 
-export function _re_v_isNaN(x: number[], n: number): number[] {
+export function _re_v_isNaN(x: number[], n: number): boolean[] {
     let i = n-1,
         ans = Array(n);
     for (; i >= 0; i -= 1) {
@@ -133,7 +133,7 @@ export function _re_v_isNaN(x: number[], n: number): number[] {
     return ans;
 }
 
-export function _re_v_isFinite(x: number[], n: number): number[] {
+export function _re_v_isFinite(x: number[], n: number): boolean[] {
     let i = n-1,
         ans = Array(n);
     for (; i >= 0; i -= 1) {

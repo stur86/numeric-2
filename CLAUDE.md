@@ -229,6 +229,13 @@ The oracle returns inputs and expected outputs so the TS side uses the oracle's 
 
 **Remember to always add new cross-validation tests after implementing new functionality.**
 
+## Benchmarks (`benchmarks/`)
+
+- `suites.ts` — Environment-agnostic suite comparing numeric.js and numeric-2 through their public APIs (element-wise, reductions, products, linear algebra, complex). Same code runs in Bun, Node and the browser; libraries are passed in. Times with `performance.now()` using calibrated batches (median + IQR) and checks that both libraries' outputs agree before timing.
+- `run.ts` — CLI runner. `bun run bench:bun` / `bun run bench:node` (Node runs a bundled build) write `benchmarks/results/{bun,node}.json`. Flags: `--quick`, `--filter <text>`, `--out <dir>`.
+- `web/` — Benchmark page: `page.html` (markup/CSS, no document skeleton, so it can be published as an Artifact as-is), `app.ts` (page logic, bundled with numeric-2 and the suites), `build.ts` (`bun run bench:web` → `web/dist/` with `bench.js`, `results.json`, `index.html`), `serve.ts` (`bun run bench:serve`). The page loads numeric.js 1.2.6 from jsDelivr and reports when a CSP that forbids `eval` stops it from loading.
+- **When adding a feature with a numeric.js counterpart, add a case to `buildCases()` in `suites.ts`**, then re-run both runtimes and rebuild the page.
+
 ## Building
 
 - `npm run build` — Builds ESM, minified ESM, UMD, and minified UMD bundles into `dist/`

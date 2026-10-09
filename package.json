@@ -3,12 +3,9 @@
   "module": "index.ts",
   "type": "module",
   "devDependencies": {
-    "@types/benchmark": "^2.1.5",
     "@types/bun": "latest",
-    "@types/microtime": "^2.1.2",
     "@types/numeric": "^1.2.6",
     "esm2umd": "^0.2.1",
-    "microtime": "^3.1.1",
     "numeric": "^1.2.6",
     "prettier": "^3.3.3",
     "typedoc": "^0.26.5"
@@ -22,6 +19,10 @@
     "build:esm-min": "bun build index.ts --outfile dist/numeric-2.min.js --minify",
     "build:umd": "esm2umd Numeric dist/numeric-2.js > dist/numeric-2.umd.js",
     "build:umd-min": "esm2umd Numeric dist/numeric-2.min.js > dist/numeric-2.umd.min.js",
-    "build": "npm run build:esm && npm run build:esm-min && npm run build:umd && npm run build:umd-min"
+    "build": "npm run build:esm && npm run build:esm-min && npm run build:umd && npm run build:umd-min",
+    "bench:bun": "bun run benchmarks/run.ts",
+    "bench:node": "bun build benchmarks/run.ts --target=node --outfile=benchmarks/.build/run-node.mjs && node benchmarks/.build/run-node.mjs",
+    "bench:web": "bun run benchmarks/web/build.ts",
+    "bench:serve": "bun run benchmarks/web/serve.ts"
   }
 }
