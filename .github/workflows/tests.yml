@@ -1,0 +1,47 @@
+# Type-check and run the test suite (unit tests and NumPy/SciPy cross-validation).
+# Required to pass before a pull request can be merged into main.
+name: Tests
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: tests-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.4.2
+      - name: Cache dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.bun/install/cache
+          key: bun-${{ hashFiles('bun.lockb') }}
+      - run: bun install --frozen-lockfile
+      # Python environment for the NumPy/SciPy oracle used by the cross-validation tests
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+          cache-dependency-glob: tests/uv.lock
+      - name: Set up Python test environment
+        run: uv sync --frozen
+        working-directory: tests
+      - name: Type-check
+        run: bunx tsc --noEmit -p .
+      - name: Check generated code is up to date
+        run: |
+          bun run meta/generate.ts src/core/
+          git diff --exit-code -- src/core/
+      - name: Test
+        run: bun test
