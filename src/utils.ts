@@ -157,10 +157,30 @@ export function clone(x: number[][]): number[][];
 export function clone(x: any): any {
     if (typeof x === 'number') return x;
     if (!Array.isArray(x)) return x;
+    if (x.length === 0 || !Array.isArray(x[0])) return cloneRow(x);
+    // Arrays of arrays get their own allocation site (see cloneRow)
     const n = x.length;
     const ret = Array(n);
     for (let i = n - 1; i >= 0; i--) {
-        ret[i] = Array.isArray(x[i]) ? clone(x[i]) : x[i];
+        ret[i] = clone(x[i]);
+    }
+    return ret;
+}
+
+/**
+ * Copy a flat array of numbers.
+ *
+ * Kept separate from clone()'s array-of-arrays allocation on purpose: V8
+ * tracks element kinds per allocation site, and a site that also allocates
+ * arrays of rows would hand out rows with generic (boxed) elements. Rows
+ * allocated here stay as unboxed doubles, which makes the hot loops in
+ * LU/inv/det several times faster on V8.
+ */
+function cloneRow(x: number[]): number[] {
+    const n = x.length;
+    const ret = Array(n);
+    for (let i = n - 1; i >= 0; i--) {
+        ret[i] = x[i];
     }
     return ret;
 }
