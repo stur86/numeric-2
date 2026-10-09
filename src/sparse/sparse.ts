@@ -8,6 +8,7 @@
 import Vector from "../vector";
 import Matrix from "../matrix";
 import { type MatrixLike, type VectorLike, toRawMatrix, toRawVector } from "../linalg/wrap";
+import { prettyPrint } from "../print";
 
 export class SparseMatrix {
     /** @internal Use the static constructors (fromDense, fromTriplets, ...). */
@@ -23,6 +24,11 @@ export class SparseMatrix {
         /** Value of each stored entry. */
         readonly values: number[],
     ) {}
+
+    /** A readable rendering: shape, nonzero count and entries (see prettyPrint). */
+    toString(): string {
+        return prettyPrint(this);
+    }
 
     /** [rows, columns] */
     get shape(): [number, number] {

@@ -8,6 +8,7 @@
 
 import Vector from "../vector";
 import Matrix from "../matrix";
+import Tensor from "../tensor";
 import type { CxMatrix, CxVector } from "./cxmat";
 
 /** A Matrix instance or a raw 2D array. */
@@ -65,28 +66,34 @@ export function toRawCxMatrix(x: MatrixLike): CxMatrix {
     return [x, null];
 }
 
-/** A Vector, Matrix, or a raw 1D/2D array. */
-export type TensorLike = VectorLike | MatrixLike;
+/** A raw nested array with three or more dimensions. */
+export type NDArray = readonly (readonly (readonly unknown[])[])[];
 
-/** `Matrix` if T is matrix-like, otherwise `Vector`. */
-export type TensorOf<T> = T extends MatrixLike ? Matrix : Vector;
+/** A Tensor, or a raw nested array with three or more dimensions. */
+export type NDLike = Tensor | number[][][] | NDArray;
 
-/** Wrap a raw 1D/2D array in a Vector/Matrix; tensors pass through. */
-export function toTensor(x: TensorLike): Vector | Matrix {
-    if (x instanceof Vector || x instanceof Matrix) return x;
-    if (Array.isArray(x[0])) return new Matrix(x as number[][]);
-    return new Vector(x as number[]);
+/** A Vector, Matrix, Tensor, or a raw nested array of any depth. */
+export type TensorLike = VectorLike | MatrixLike | NDLike;
+
+/** `Tensor` for N-D input, `Matrix` for matrix-like, otherwise `Vector`. */
+export type TensorOf<T> = T extends Tensor | NDArray ? Tensor : T extends MatrixLike ? Matrix : Vector;
+
+/** Wrap a raw array in a Vector (1-D), Matrix (2-D) or Tensor (3+ D); tensors pass through. */
+export function toTensor(x: TensorLike): Vector | Matrix | Tensor {
+    if (x instanceof Vector || x instanceof Matrix || x instanceof Tensor) return x;
+    const a = x as any[];
+    if (Array.isArray(a[0])) return Array.isArray(a[0][0]) ? new Tensor(a as any) : new Matrix(a as number[][]);
+    return new Vector(a as number[]);
 }
 
 /**
- * Wrap a raw kernel result as a Vector or Matrix.
+ * Wrap a raw kernel result as a Vector ("v"), Matrix ("m") or Tensor ("t").
  * Complex results arrive as an [re, im] pair; `complex` says which form to expect.
  */
-export function wrapTensor(raw: any, complex: boolean, matrix: boolean): Vector | Matrix {
-    if (complex) {
-        return matrix ? new Matrix(raw[0], raw[1]) : new Vector(raw[0], raw[1]);
-    }
-    return matrix ? new Matrix(raw) : new Vector(raw);
+export function wrapTensor(raw: any, complex: boolean, optype: string): Vector | Matrix | Tensor {
+    const make = (re: any, im: any) =>
+        optype === "t" ? new Tensor(re, im) : optype === "m" ? new Matrix(re, im) : new Vector(re, im);
+    return complex ? make(raw[0], raw[1]) : make(raw, null);
 }
 
 /** True if x is a complex Vector/Matrix. Raw arrays are always real. */

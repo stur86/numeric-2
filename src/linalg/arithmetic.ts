@@ -1,26 +1,34 @@
 import { BinaryMethod, fastBinary } from "../core/utils";
 import Vector from "../vector";
 import Matrix from "../matrix";
-import { type TensorLike, type MatrixLike, toTensor, wrapTensor } from "./wrap";
+import Tensor from "../tensor";
+import type { NestedArray } from "../base";
+import { type TensorLike, type MatrixLike, type NDArray, toTensor, wrapTensor } from "./wrap";
 import { type Complex, type Scalar, isComplex } from "../complex";
 
 /** An operand of an element-wise binary op: a vector, matrix (or raw array) or a real/complex scalar. */
 export type Operand = TensorLike | Scalar;
 
-/** Result type of an arithmetic op: `Matrix` if either operand is a matrix, else `Vector`. */
-export type ArithResult<X, Y> = X extends MatrixLike ? Matrix : Y extends MatrixLike ? Matrix : Vector;
+/** N-D operands (Tensor or raw arrays nested three or more deep). */
+type ND = Tensor | NDArray;
 
-/** Result type of a comparison: `boolean[][]` if either operand is a matrix, else `boolean[]`. */
-export type CompareResult<X, Y> = X extends MatrixLike ? boolean[][] : Y extends MatrixLike ? boolean[][] : boolean[];
+/** Result type of an arithmetic op: `Tensor` if either operand is N-D, else `Matrix` if either is a matrix, else `Vector`. */
+export type ArithResult<X, Y> =
+    X extends ND ? Tensor : Y extends ND ? Tensor : X extends MatrixLike ? Matrix : Y extends MatrixLike ? Matrix : Vector;
 
-function asTensor(x: Operand): Vector | Matrix | number | Complex {
+/** Result type of a comparison: nested boolean arrays matching the operands' shape. */
+export type CompareResult<X, Y> =
+    X extends ND ? NestedArray<boolean> : Y extends ND ? NestedArray<boolean>
+    : X extends MatrixLike ? boolean[][] : Y extends MatrixLike ? boolean[][] : boolean[];
+
+function asTensor(x: Operand): Vector | Matrix | Tensor | number | Complex {
     return typeof x === "number" || isComplex(x) ? x : toTensor(x as TensorLike);
 }
 
 /** Run an arithmetic kernel and wrap its result (real or complex) in a Vector/Matrix. */
 function arith(x: Operand, y: Operand, name: string): any {
     const method = new BinaryMethod(asTensor(x), asTensor(y), name);
-    return wrapTensor(method.invoke(), method.dtype === "cx", method.optype === "m");
+    return wrapTensor(method.invoke(), method.dtype === "cx", method.optype);
 }
 
 /** Run a comparison kernel. Results stay as boolean arrays, since tensors hold numbers. */
@@ -53,7 +61,8 @@ export type LogicalOperand = Operand | boolean | boolean[] | boolean[][];
 
 /** Result type of a logical op: `boolean[][]` if either operand is a matrix, else `boolean[]`. */
 export type LogicalResult<X, Y> =
-    X extends MatrixLike | boolean[][] ? boolean[][] : Y extends MatrixLike | boolean[][] ? boolean[][] : boolean[];
+    X extends ND ? NestedArray<boolean> : Y extends ND ? NestedArray<boolean>
+    : X extends MatrixLike | boolean[][] ? boolean[][] : Y extends MatrixLike | boolean[][] ? boolean[][] : boolean[];
 
 /**
  * Element-wise addition of two tensors of the same shape, or a tensor and a scalar.

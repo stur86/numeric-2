@@ -12,35 +12,45 @@
 
 import Vector from "../vector";
 import Matrix from "../matrix";
+import Tensor, { shapeOf } from "../tensor";
 import NumericCore from "../core";
 import { type Complex, isComplex } from "../complex";
 import type { Operand } from "./arithmetic";
 
 /** Anything an in-place op can write into. */
-export type InPlaceTarget = Vector | Matrix | number[] | number[][];
+export type InPlaceTarget = Vector | Matrix | Tensor | number[] | number[][] | number[][][];
 
 const kernel = (name: string): Function | undefined => {
     const k = NumericCore[name as keyof typeof NumericCore];
     return typeof k === "function" ? k : undefined;
 };
 
-/** Rows of a target or operand (a vector is one row), plus its imaginary rows if complex. */
-type Parts = { re: number[][]; im: number[][] | null; matrix: boolean };
+/** Innermost rows (a vector is one row) and imaginary rows if complex, plus the shape. */
+type Parts = { re: number[][]; im: number[][] | null; shape: number[] };
+
+function rowsOf(data: any, ndim: number): number[][] {
+    if (ndim === 1) return [data];
+    if (ndim === 2) return data;
+    const out: number[][] = [];
+    for (const sub of data) for (const r of rowsOf(sub, ndim - 1)) out.push(r);
+    return out;
+}
 
 function partsOf(x: unknown, fname: string, role: string): Parts {
-    if (x instanceof Vector) return { re: [x._re], im: x._im === null ? null : [x._im], matrix: false };
-    if (x instanceof Matrix) return { re: x._re, im: x._im, matrix: true };
-    if (Array.isArray(x) && x.length > 0) {
-        if (Array.isArray(x[0])) {
-            const n = (x[0] as number[]).length;
-            for (const row of x as number[][]) {
-                if (!Array.isArray(row) || row.length !== n) throw new Error(`${fname}: ${role} rows must all have the same length`);
-            }
-            return { re: x as number[][], im: null, matrix: true };
-        }
-        return { re: [x as number[]], im: null, matrix: false };
+    if (x instanceof Vector || x instanceof Matrix || x instanceof Tensor) {
+        const nd = x.shape.length;
+        return { re: rowsOf(x.real, nd), im: x.imag === null ? null : rowsOf(x.imag, nd), shape: x.shape };
     }
-    throw new Error(`${fname}: ${role} must be a Vector, Matrix or non-empty array`);
+    if (Array.isArray(x) && x.length > 0) {
+        let shape: number[];
+        try {
+            shape = shapeOf(x as any, fname);
+        } catch {
+            throw new Error(`${fname}: ${role} rows must all have the same length`);
+        }
+        return { re: rowsOf(x, shape.length), im: null, shape };
+    }
+    throw new Error(`${fname}: ${role} must be a Vector, Matrix, Tensor or non-empty array`);
 }
 
 const complexIntoReal = (fname: string) =>
@@ -80,9 +90,8 @@ function inplaceBinary(name: string) {
 
         // Tensor operand: same shape required
         const u = partsOf(y, fname, "operand");
-        if (u.matrix !== t.matrix || u.re.length !== m || u.re[0].length !== n) {
-            const shape = (p: Parts) => (p.matrix ? `${p.re.length}x${p.re[0].length}` : `${p.re[0].length}`);
-            throw new Error(`${fname}: shape mismatch (${shape(t)} vs ${shape(u)})`);
+        if (u.shape.length !== t.shape.length || u.shape.some((d, i) => d !== t.shape[i])) {
+            throw new Error(`${fname}: shape mismatch (${t.shape.join("x")} vs ${u.shape.join("x")})`);
         }
         if (t.im === null) {
             if (u.im !== null) throw complexIntoReal(fname);

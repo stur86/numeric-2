@@ -1,5 +1,6 @@
 import Vector from "./src/vector";
 import Matrix from "./src/matrix";
+import Tensor from "./src/tensor";
 import { complex, isComplex } from "./src/complex";
 import type { Complex, Scalar } from "./src/complex";
 import * as linalg from "./src/linalg";
@@ -11,6 +12,8 @@ import { SparseMatrix } from "./src/sparse";
 import { defaultRng, RandomGenerator } from "./src/random";
 import type { Size, SampleOptions, Sample } from "./src/random";
 import { TensorBase } from "./src/base";
+import { prettyPrint } from "./src/print";
+import type { PrettyPrintOptions } from "./src/print";
 import { dim, rep, linspace, random, identity, diag } from "./src/utils";
 // These accept raw arrays or Vector/Matrix (real or complex)
 import {
@@ -20,6 +23,7 @@ import {
 export {
     Vector,
     Matrix,
+    Tensor,
     linalg,
     optimize,
     interpolate,
@@ -28,8 +32,9 @@ export {
     SparseMatrix,
     complex, isComplex,
     defaultRng, RandomGenerator, TensorBase,
+    prettyPrint,
     dim, rep, linspace, random, identity, diag,
     clone, transpose, negtranspose, transjugate, getDiag, getBlock, getBlock1D, setBlock, getRange, blockMatrix, tensor, same,
 };
 
-export type { Complex, Scalar, Size, SampleOptions, Sample };
+export type { Complex, Scalar, Size, SampleOptions, Sample, PrettyPrintOptions };

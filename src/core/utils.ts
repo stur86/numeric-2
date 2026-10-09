@@ -1,6 +1,7 @@
 import type { TensorBase } from "../base";
 import Vector from "../vector";
 import Matrix from "../matrix";
+import Tensor from "../tensor";
 import NumericCore from ".";
 import { type Complex, isComplex } from "../complex";
 
@@ -41,13 +42,45 @@ function imagOrZeros(t: TensorBase): number[] {
     return zeros(t.shape[0]);
 }
 
-/** The imaginary rows of a matrix, or zero rows if it is real. */
+/**
+ * The innermost rows of a matrix or N-D tensor's data, in order (row-major).
+ * For a matrix this is the data itself.
+ */
+function rowsOf(data: any, ndim: number): number[][] {
+    if (ndim <= 2) return data;
+    const out: number[][] = [];
+    for (const sub of data) for (const r of rowsOf(sub, ndim - 1)) out.push(r);
+    return out;
+}
+
+/** Inverse of rowsOf: regroup consecutive rows into the given shape. */
+function nestRows(rows: any[], shape: number[]): any {
+    if (shape.length <= 2) return rows;
+    const per = rows.length / shape[0];
+    const out = new Array(shape[0]);
+    for (let i = 0; i < shape[0]; i++) out[i] = nestRows(rows.slice(i * per, (i + 1) * per), shape.slice(1));
+    return out;
+}
+
+/** The imaginary rows of a matrix or N-D tensor, or zero rows if it is real. */
 function imagRowsOrZeros(t: TensorBase): number[][] {
-    if (t.imag !== null) return t.imag as number[][];
-    const [m, n] = t.shape;
+    if (t.imag !== null) return rowsOf(t.imag, t.shape.length);
+    const m = rowsOf(t.real, t.shape.length).length, n = t.shape[t.shape.length - 1];
     const z: number[][] = Array(m);
     for (let i = m - 1; i >= 0; i--) z[i] = zeros(n);
     return z;
+}
+
+/**
+ * Turn gathered per-row results back into the tensor's shape. Reducer
+ * results (scalars) pass through; for matrices the rows already are the shape.
+ */
+function reshapeRows(out: any, rows: any[], dtype: string, shape: number[]): any {
+    if (shape.length <= 2) return out;
+    const first = rows[0];
+    if (typeof first === "number" || typeof first === "boolean" || (dtype === "cx" && typeof first[0] === "number")) return out;
+    if (dtype === "cx" && Array.isArray(first[0])) return [nestRows(out[0], shape), nestRows(out[1], shape)];
+    return nestRows(out, shape);
 }
 
 function zeros(n: number): number[] {
@@ -65,10 +98,13 @@ function resolveKernel(full_name: string, name: string, dtype: string): Function
     return method;
 }
 
-/** Determine the optype ("v" or "m") of a tensor, or throw. */
+const KIND: Record<string, string> = { v: "vector", m: "matrix", t: "tensor" };
+
+/** Determine the optype ("v", "m" or "t" for N-D) of a tensor, or throw. */
 function optypeOf(t: unknown, name: string): string {
     if (t instanceof Vector) return "v";
     if (t instanceof Matrix) return "m";
+    if (t instanceof Tensor) return "t";
     throw new Error(`Method ${name} not supported for ${t}`);
 }
 
@@ -145,16 +181,18 @@ export class UnaryMethod {
             return kernel(...this.args);
         }
 
-        const re = this.op.real as number[][];
-        const im = this.op.imag as number[][] | null;
-        const [m, n] = this.op.shape;
+        // Matrices and N-D tensors: run the vector kernel on each innermost row
+        const shape = this.op.shape, nd = shape.length;
+        const re = rowsOf(this.op.real, nd);
+        const im = this.op.imag === null ? null : rowsOf(this.op.imag, nd);
+        const m = re.length, n = shape[nd - 1];
         const rows = Array(m);
         if (this.dtype == "cx") {
             for (let i = m - 1; i >= 0; i--) rows[i] = kernel(re[i], im![i], n);
         } else {
             for (let i = m - 1; i >= 0; i--) rows[i] = kernel(re[i], n);
         }
-        return gatherRows(rows, this.name, this.dtype, this.label);
+        return reshapeRows(gatherRows(rows, this.name, this.dtype, this.label), rows, this.dtype, shape);
     }
 }
 
@@ -200,7 +238,7 @@ export class BinaryMethod {
         if (!leftIsScalar && !rightIsScalar) {
             const other = (right as TensorBase);
             if (optypeOf(other, name) !== this.optype) {
-                throw new Error(`Binary op ${name}: cannot combine a vector with a matrix`);
+                throw new Error(`Binary op ${name}: cannot combine a ${KIND[this.optype]} with a ${KIND[optypeOf(other, name)]}`);
             }
             const s1 = tensor.shape, s2 = other.shape;
             if (s1.length !== s2.length || s1.some((d, i) => d !== s2[i])) {
@@ -257,11 +295,14 @@ export class BinaryMethod {
             return kernel(...this.args);
         }
 
-        const [m, n] = this.tensor.shape;
+        // Matrices and N-D tensors: run the vector kernel on each innermost row
+        const shape = this.tensor.shape, nd = shape.length;
+        const n = shape[nd - 1];
         const cx = this.dtype == "cx";
         // Per-operand row accessors: scalars are passed through unchanged
-        const lre = typeof this.left === "number" ? null : this.left.real as number[][];
-        const rre = typeof this.right === "number" ? null : this.right.real as number[][];
+        const lre = typeof this.left === "number" ? null : rowsOf(this.left.real, nd);
+        const rre = typeof this.right === "number" ? null : rowsOf(this.right.real, nd);
+        const m = (lre ?? rre)!.length;
         const lim = cx && lre ? imagRowsOrZeros(this.left as TensorBase) : null;
         const rim = cx && rre ? imagRowsOrZeros(this.right as TensorBase) : null;
         const ls = this.left as number, rs = this.right as number;
@@ -278,7 +319,7 @@ export class BinaryMethod {
                 rows[i] = kernel(lre ? lre[i] : ls, rre ? rre[i] : rs, n);
             }
         }
-        return gatherRows(rows, this.name, this.dtype);
+        return reshapeRows(gatherRows(rows, this.name, this.dtype), rows, this.dtype, shape);
     }
 }
 

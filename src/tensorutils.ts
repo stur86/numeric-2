@@ -8,6 +8,7 @@
 
 import Vector from "./vector";
 import Matrix from "./matrix";
+import Tensor from "./tensor";
 import * as raw from "./utils";
 
 /** Deep copy. */
@@ -15,8 +16,9 @@ export function clone(x: number[]): number[];
 export function clone(x: number[][]): number[][];
 export function clone(x: Vector): Vector;
 export function clone(x: Matrix): Matrix;
+export function clone(x: Tensor): Tensor;
 export function clone(x: any): any {
-    if (x instanceof Vector || x instanceof Matrix) return x.clone();
+    if (x instanceof Vector || x instanceof Matrix || x instanceof Tensor) return x.clone();
     return raw.clone(x);
 }
 
@@ -109,7 +111,7 @@ export function tensor(x: number[] | Vector, y: number[] | Vector): number[][] |
 
 /** Exact equality of shape and contents (real and imaginary parts). */
 export function same(x: any, y: any): boolean {
-    const isT = (t: unknown) => t instanceof Vector || t instanceof Matrix;
+    const isT = (t: unknown) => t instanceof Vector || t instanceof Matrix || t instanceof Tensor;
     if (isT(x) || isT(y)) {
         if (!isT(x) || !isT(y) || x.constructor !== y.constructor) return false;
         if (!raw.same(x.real, y.real)) return false;

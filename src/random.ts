@@ -4,7 +4,7 @@
  *     const rng = defaultRng(42);
  *     rng.uniform(-1, 1, 5);          // Vector
  *     rng.normal(0, 1, [3, 4]);       // Matrix
- *     rng.integers(0, 10, [2, 2, 2]); // TensorBase (3-D)
+ *     rng.integers(0, 10, [2, 2, 2]); // Tensor (3-D)
  *     rng.random([4], { bare: true }); // number[]
  *
  * The bit generator is xoshiro128** (Blackman & Vigna), seeded through
@@ -15,7 +15,8 @@
 
 import Vector from "./vector";
 import Matrix from "./matrix";
-import { TensorBase, type NestedArray } from "./base";
+import Tensor from "./tensor";
+import type { NestedArray } from "./base";
 
 /** A sample shape: a length, or a list of dimensions. */
 export type Size = number | readonly number[];
@@ -29,14 +30,14 @@ export type SampleOptions = {
 /**
  * The type of a sample of the given size:
  * no size → number; n or [n] → Vector; [m, n] → Matrix; more dimensions →
- * TensorBase. With { bare: true }, the matching plain arrays instead.
+ * Tensor. With { bare: true }, the matching plain arrays instead.
  */
 export type Sample<S, B> =
     S extends undefined ? number
     : S extends number | readonly [number] ? (B extends true ? number[] : Vector)
     : S extends readonly [number, number] ? (B extends true ? number[][] : Matrix)
     : S extends readonly [] ? number
-    : (B extends true ? NestedArray<number> : TensorBase);
+    : (B extends true ? NestedArray<number> : Tensor);
 
 const rotl = (x: number, k: number) => (x << k) | (x >>> (32 - k));
 
@@ -164,7 +165,7 @@ export class RandomGenerator {
         if (shape.includes(0)) throw new Error("RandomGenerator: Vector/Matrix cannot be empty (use { bare: true } for empty samples)");
         if (shape.length === 1) return new Vector(data);
         if (shape.length === 2) return new Matrix(data);
-        return new TensorBase(data, null, shape);
+        return new Tensor(data);
     }
 
     /** Uniform samples in [0, 1). */

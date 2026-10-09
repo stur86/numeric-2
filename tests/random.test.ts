@@ -1,7 +1,7 @@
 /** Seeded random generation: bit generator vs a Python reference, and distribution tests. */
 import { describe, test, expect, afterAll } from "bun:test";
 import { oracle, killOracle } from "./runner";
-import { defaultRng, RandomGenerator, Vector, Matrix, TensorBase } from "../index";
+import { defaultRng, RandomGenerator, Vector, Matrix, Tensor } from "../index";
 
 afterAll(() => killOracle());
 
@@ -83,7 +83,7 @@ describe("API", () => {
         expect(M).toBeInstanceOf(Matrix);
         expect(M.shape).toEqual([2, 5]);
         const T = rng.standardNormal([2, 3, 4]);
-        expect(T).toBeInstanceOf(TensorBase);
+        expect(T).toBeInstanceOf(Tensor);
         expect(T.shape).toEqual([2, 3, 4]);
         const raw = rng.integers(0, 3, [2, 2], { bare: true });
         expect(Array.isArray(raw) && Array.isArray(raw[0])).toBe(true);

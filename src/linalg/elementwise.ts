@@ -1,7 +1,9 @@
 import { UnaryMethod, fastUnary } from "../core/utils";
 import Vector from "../vector";
 import Matrix from "../matrix";
-import { type TensorLike, type TensorOf, type MatrixLike, toTensor, wrapTensor } from "./wrap";
+import { type TensorLike, type TensorOf, type MatrixLike, type NDArray, toTensor, wrapTensor } from "./wrap";
+import type Tensor from "../tensor";
+import type { NestedArray } from "../base";
 
 /*
  * Public element-wise unary maps on vectors and matrices.
@@ -12,7 +14,7 @@ import { type TensorLike, type TensorOf, type MatrixLike, toTensor, wrapTensor }
 /** Run a unary map kernel and wrap its result in a Vector/Matrix. */
 function map(x: TensorLike, name: string): any {
     const method = new UnaryMethod(toTensor(x), name);
-    return wrapTensor(method.invoke(), method.dtype === "cx", method.optype === "m");
+    return wrapTensor(method.invoke(), method.dtype === "cx", method.optype);
 }
 
 /** Run a unary predicate kernel; results stay as boolean arrays. */
@@ -36,12 +38,12 @@ const OPS = {
     abs: fastUnary<any>("abs", toVector, toMatrix, (x) => {
         const method = new UnaryMethod(toTensor(x), "abs");
         const raw = method.invoke();
-        return wrapTensor(method.dtype === "cx" ? raw[0] : raw, false, method.optype === "m");
+        return wrapTensor(method.dtype === "cx" ? raw[0] : raw, false, method.optype);
     }),
 };
 
 /** `boolean[][]` for matrix-like T, otherwise `boolean[]`. */
-export type BoolOf<T> = T extends MatrixLike ? boolean[][] : boolean[];
+export type BoolOf<T> = T extends Tensor | NDArray ? NestedArray<boolean> : T extends MatrixLike ? boolean[][] : boolean[];
 
 /** Element-wise square root. */
 export function sqrt<T extends TensorLike>(x: T): TensorOf<T> {

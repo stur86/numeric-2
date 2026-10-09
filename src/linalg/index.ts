@@ -50,3 +50,6 @@ export {
     isqrt, iabs, iexp, ilog, isin, icos, itan, iasin, iacos, iatan, ineg, iceil, ifloor, iround, iconj, ireciprocal, ibnot,
 } from "./inplace";
 export type { InPlaceTarget } from "./inplace";
+
+export { convolve } from "./convolve";
+export type { ConvolveMode } from "./convolve";

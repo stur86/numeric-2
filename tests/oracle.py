@@ -603,6 +603,18 @@ def handle_xoshiro(req: dict) -> dict:
     return {"inputs": {}, "expected": {"raw": raw, "doubles": doubles}}
 
 
+def handle_convolve(req: dict) -> dict:
+    """np.convolve in all three modes, for real or complex inputs of lengths n and m."""
+    rng = np.random.default_rng(req["seed"])
+    n, m = req["n"], req["m"]
+    a, v = rng.standard_normal(n), rng.standard_normal(m)
+    if req.get("complex"):
+        a = a + 1j * rng.standard_normal(n)
+        v = v + 1j * rng.standard_normal(m)
+    out = {mode: cx_to_parts(np.convolve(a, v, mode) + 0j) for mode in ("full", "same", "valid")}
+    return {"inputs": {"a": cx_to_parts(a + 0j), "v": cx_to_parts(v + 0j)}, "expected": out}
+
+
 def handle_cx_dot_VV(req: dict) -> dict:
     rng = np.random.default_rng(req["seed"])
     n = req["n"]
@@ -701,6 +713,8 @@ def process(req: dict) -> dict:
         return handle_logic(req)
     elif op == "xoshiro":
         return handle_xoshiro(req)
+    elif op == "convolve":
+        return handle_convolve(req)
     elif op == "sparse_solve":
         return handle_sparse_solve(req)
     elif op == "getBlock":
