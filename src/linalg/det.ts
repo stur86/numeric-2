@@ -1,13 +1,23 @@
 import { clone } from "../utils";
-import { type MatrixLike, toRawMatrix, assertSquare } from "./wrap";
+import { type MatrixLike, toRawMatrix, toRawCxMatrix, assertSquare, isComplexTensor } from "./wrap";
+import { cxDet } from "./cxlinalg";
+import type { Complex, Scalar } from "../complex";
 
 /**
  * Determinant of a square matrix via Gaussian elimination with partial pivoting.
  *
- * @param x     A square matrix.
- * @returns     The determinant.
+ * @param x     A square matrix (real or complex).
+ * @returns     The determinant: a number for real matrices, a Complex for complex ones.
  */
-export function det(x: MatrixLike): number {
+export function det(x: number[][]): number;
+export function det(x: MatrixLike): Scalar;
+export function det(x: MatrixLike): Scalar {
+    if (isComplexTensor(x)) {
+        const cx = toRawCxMatrix(x);
+        assertSquare(cx[0], "det");
+        const [re, im] = cxDet(cx);
+        return { re, im } as Complex;
+    }
     const rawX = toRawMatrix(x, "det");
     assertSquare(rawX, "det");
     const n = rawX.length;

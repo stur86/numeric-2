@@ -2,9 +2,10 @@ import { BinaryMethod } from "../core/utils";
 import type Vector from "../vector";
 import type Matrix from "../matrix";
 import { type TensorLike, type MatrixLike, toTensor, wrapTensor } from "./wrap";
+import { type Complex, type Scalar, isComplex } from "../complex";
 
-/** An operand of an element-wise binary op: a vector, matrix (or raw array) or a scalar. */
-export type Operand = TensorLike | number;
+/** An operand of an element-wise binary op: a vector, matrix (or raw array) or a real/complex scalar. */
+export type Operand = TensorLike | Scalar;
 
 /** Result type of an arithmetic op: `Matrix` if either operand is a matrix, else `Vector`. */
 export type ArithResult<X, Y> = X extends MatrixLike ? Matrix : Y extends MatrixLike ? Matrix : Vector;
@@ -12,8 +13,8 @@ export type ArithResult<X, Y> = X extends MatrixLike ? Matrix : Y extends Matrix
 /** Result type of a comparison: `boolean[][]` if either operand is a matrix, else `boolean[]`. */
 export type CompareResult<X, Y> = X extends MatrixLike ? boolean[][] : Y extends MatrixLike ? boolean[][] : boolean[];
 
-function asTensor(x: Operand): Vector | Matrix | number {
-    return typeof x === "number" ? x : toTensor(x);
+function asTensor(x: Operand): Vector | Matrix | number | Complex {
+    return typeof x === "number" || isComplex(x) ? x : toTensor(x as TensorLike);
 }
 
 /** Run an arithmetic kernel and wrap its result (real or complex) in a Vector/Matrix. */

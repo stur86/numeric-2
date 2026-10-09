@@ -8,7 +8,7 @@
 
 import Vector from "../vector";
 import Matrix from "../matrix";
-import type { CxMatrix } from "./cxmat";
+import type { CxMatrix, CxVector } from "./cxmat";
 
 /** A Matrix instance or a raw 2D array. */
 export type MatrixLike = Matrix | number[][];
@@ -87,4 +87,17 @@ export function wrapTensor(raw: any, complex: boolean, matrix: boolean): Vector 
         return matrix ? new Matrix(raw[0], raw[1]) : new Vector(raw[0], raw[1]);
     }
     return matrix ? new Matrix(raw) : new Vector(raw);
+}
+
+/** True if x is a complex Vector/Matrix. Raw arrays are always real. */
+export function isComplexTensor(x: unknown): boolean {
+    return (x instanceof Vector || x instanceof Matrix) && x.is_complex;
+}
+
+/** Extract a CxVector from a VectorLike. For raw number[], imag is null. */
+export function toRawCxVector(x: VectorLike): CxVector {
+    if (x instanceof Vector) {
+        return [x.real as number[], x.imag as number[] | null];
+    }
+    return [x, null];
 }

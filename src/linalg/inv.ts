@@ -1,14 +1,21 @@
 import { clone } from "../utils";
 import Matrix from "../matrix";
-import { type MatrixLike, toRawMatrix, assertSquare } from "./wrap";
+import { type MatrixLike, toRawMatrix, toRawCxMatrix, assertSquare, isComplexTensor } from "./wrap";
+import { cxInv } from "./cxlinalg";
 
 /**
  * Matrix inverse via Gauss-Jordan elimination with partial pivoting.
  *
- * @param x     A square matrix.
+ * @param x     A square matrix (real or complex).
  * @returns     The inverse matrix.
  */
 export function inv(x: MatrixLike): Matrix {
+    if (isComplexTensor(x)) {
+        const cx = toRawCxMatrix(x);
+        assertSquare(cx[0], "inv");
+        const [re, im] = cxInv(cx);
+        return new Matrix(re, im);
+    }
     const rawX = toRawMatrix(x, "inv");
     assertSquare(rawX, "inv");
     const n = rawX.length;

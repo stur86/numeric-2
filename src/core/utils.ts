@@ -2,6 +2,7 @@ import type { TensorBase } from "../base";
 import Vector from "../vector";
 import Matrix from "../matrix";
 import NumericCore from ".";
+import { type Complex, isComplex } from "../complex";
 
 /*
  * Dispatchers from tensors to the kernels in NumericCore.
@@ -26,6 +27,12 @@ const ROW_COMBINERS: Record<string, Combiner> = {
     min: (a, b) => Math.min(a, b),
     any: (a, b) => a || b,
     all: (a, b) => a && b,
+};
+
+/** Same, for complex-valued reducers whose per-row results are [re, im] pairs. */
+const CX_ROW_COMBINERS: Record<string, Combiner> = {
+    sum: (a, b) => [a[0] + b[0], a[1] + b[1]],
+    prod: (a, b) => [a[0] * b[0] - a[1] * b[1], a[0] * b[1] + a[1] * b[0]],
 };
 
 /** The imaginary part of a vector, or a zero array if it is real. */
@@ -68,22 +75,26 @@ function optypeOf(t: unknown, name: string): string {
 /**
  * Gather per-row results of a matrix operation into the final result:
  * - real maps/binops: number[][] (or boolean[][])
- * - complex maps/binops: [re rows, im rows]
- * - reducers: a single value, merged with ROW_COMBINERS
+ * - complex maps/binops: [re rows, im rows] (complex comparisons: boolean[][])
+ * - reducers: a single value (an [re, im] pair if complex-valued), merged
+ *   with ROW_COMBINERS / CX_ROW_COMBINERS
  */
-function gatherRows(rows: any[], name: string, dtype: string): any {
+function gatherRows(rows: any[], name: string, dtype: string, label: string = name): any {
     const m = rows.length;
     const first = rows[0];
-    if (typeof first === "number" || typeof first === "boolean") {
-        const combine = ROW_COMBINERS[name];
+    const scalarRows = typeof first === "number" || typeof first === "boolean";
+    const cxScalarRows = !scalarRows && dtype === "cx" && typeof first[0] === "number";
+    if (scalarRows || cxScalarRows) {
+        const combine = (cxScalarRows ? CX_ROW_COMBINERS : ROW_COMBINERS)[name];
         if (combine === undefined) {
-            throw new Error(`Reducer ${name} is not supported for matrices`);
+            throw new Error(`Reducer ${label} is not supported for matrices`);
         }
         let ans = first;
         for (let i = 1; i < m; i++) ans = combine(ans, rows[i]);
         return ans;
     }
-    if (dtype === "cx") {
+    // Complex maps/binops return [re, im] per row; complex comparisons return a plain boolean[]
+    if (dtype === "cx" && Array.isArray(first[0])) {
         const re: number[][] = Array(m);
         const im: number[][] = Array(m);
         for (let i = m - 1; i >= 0; i--) {
@@ -102,9 +113,12 @@ export class UnaryMethod {
     full_name: string;
     args: any[] = [];
     private op: TensorBase;
+    /** Name used in error messages (defaults to the kernel name). */
+    private label: string;
 
-    constructor(op: TensorBase, name: string) {
+    constructor(op: TensorBase, name: string, label: string = name) {
         this.name = name;
+        this.label = label;
         this.optype = optypeOf(op, name);
         this.op = op;
         this.dtype = op.is_complex ? "cx" : "re";
@@ -126,7 +140,7 @@ export class UnaryMethod {
     }
 
     invoke(): any {
-        const kernel = resolveKernel(this.full_name, this.name, this.dtype);
+        const kernel = resolveKernel(this.full_name, this.label, this.dtype);
         if (this.optype == "v") {
             return kernel(...this.args);
         }
@@ -140,7 +154,7 @@ export class UnaryMethod {
         } else {
             for (let i = m - 1; i >= 0; i--) rows[i] = kernel(re[i], n);
         }
-        return gatherRows(rows, this.name, this.dtype);
+        return gatherRows(rows, this.name, this.dtype, this.label);
     }
 }
 
@@ -154,15 +168,25 @@ export class BinaryMethod {
     private left: TensorBase | number;
     private right: TensorBase | number;
     private tensor: TensorBase;
+    /** Imaginary part of the scalar operand, if any (0 for real scalars). */
+    private scalarIm = 0;
 
-    constructor(left: TensorBase | number, right: TensorBase | number, name: string) {
+    constructor(left: TensorBase | number | Complex, right: TensorBase | number | Complex, name: string) {
         this.name = name;
+
+        // Complex scalars: split into a real part and scalarIm
+        const leftIsScalar = typeof left === 'number' || isComplex(left);
+        const rightIsScalar = typeof right === 'number' || isComplex(right);
+        if (isComplex(left)) {
+            this.scalarIm = left.im;
+            left = left.re;
+        }
+        if (isComplex(right)) {
+            this.scalarIm = right.im;
+            right = right.re;
+        }
         this.left = left;
         this.right = right;
-
-        // Determine variant (VV, VS, SV) and extract data
-        const leftIsScalar = typeof left === 'number';
-        const rightIsScalar = typeof right === 'number';
 
         if (leftIsScalar && rightIsScalar) {
             throw new Error(`Binary op ${name} requires at least one tensor operand`);
@@ -171,7 +195,7 @@ export class BinaryMethod {
         const tensor = (leftIsScalar ? right : left) as TensorBase;
         this.tensor = tensor;
         this.optype = optypeOf(tensor, name);
-        this.dtype = tensor.is_complex ? "cx" : "re";
+        this.dtype = tensor.is_complex || this.scalarIm !== 0 ? "cx" : "re";
 
         if (!leftIsScalar && !rightIsScalar) {
             const other = (right as TensorBase);
@@ -200,7 +224,7 @@ export class BinaryMethod {
             if (leftIsScalar) {
                 this.args.push(left);
                 if (this.dtype == "cx") {
-                    this.args.push(0); // imaginary part of scalar is 0
+                    this.args.push(this.scalarIm);
                 }
             } else {
                 this.args.push((left as TensorBase).real);
@@ -211,7 +235,7 @@ export class BinaryMethod {
             if (rightIsScalar) {
                 this.args.push(right);
                 if (this.dtype == "cx") {
-                    this.args.push(0); // imaginary part of scalar is 0
+                    this.args.push(this.scalarIm);
                 }
             } else {
                 this.args.push((right as TensorBase).real);
@@ -246,8 +270,8 @@ export class BinaryMethod {
         for (let i = m - 1; i >= 0; i--) {
             if (cx) {
                 rows[i] = kernel(
-                    lre ? lre[i] : ls, lim ? lim[i] : 0,
-                    rre ? rre[i] : rs, rim ? rim[i] : 0,
+                    lre ? lre[i] : ls, lim ? lim[i] : this.scalarIm,
+                    rre ? rre[i] : rs, rim ? rim[i] : this.scalarIm,
                     n,
                 );
             } else {

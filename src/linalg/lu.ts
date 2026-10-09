@@ -1,10 +1,14 @@
 import { clone } from "../utils";
 import Vector from "../vector";
 import Matrix from "../matrix";
-import { type MatrixLike, type VectorLike, toRawMatrix, toRawVector, assertSquare } from "./wrap";
+import {
+    type MatrixLike, type VectorLike, toRawMatrix, toRawCxMatrix, toRawCxVector,
+    assertSquare, isComplexTensor,
+} from "./wrap";
+import { cxLU, cxLUsolve } from "./cxlinalg";
 
 export type LUPResult = {
-    /** L (strictly below the diagonal, implicit unit diagonal) and U packed together. */
+    /** L (strictly below the diagonal, implicit unit diagonal) and U packed together. Complex if A was. */
     LU: Matrix;
     /** Pivot rows: row k was swapped with row P[k] at step k. */
     P: number[];
@@ -22,11 +26,17 @@ type RawLUPResult = {
  * (L below diagonal with implicit 1s on diagonal, U on/above diagonal),
  * and P is the pivot permutation array.
  *
- * @param A     A square matrix.
- * @param fast  If true, modifies A's data in-place. Default false (clones A).
+ * @param A     A square matrix (real or complex).
+ * @param fast  If true, modifies A's data in-place (real matrices only). Default false (clones A).
  * @returns     {LU, P}
  */
 export function LU(A: MatrixLike, fast: boolean = false): LUPResult {
+    if (isComplexTensor(A)) {
+        const cA = toRawCxMatrix(A);
+        assertSquare(cA[0], "LU");
+        const { LUre, LUim, P } = cxLU(cA);
+        return { LU: new Matrix(LUre, LUim), P };
+    }
     const { LU: a, P } = rawLU(A, fast);
     return { LU: new Matrix(a), P };
 }
@@ -91,17 +101,29 @@ function rawLU(A: MatrixLike, fast: boolean): RawLUPResult {
  * @returns     The solution vector x.
  */
 export function LUsolve(lup: LUPResult, b: VectorLike): Vector {
-    return new Vector(rawLUsolve({ LU: lup.LU.real as number[][], P: lup.P }, b));
+    const n = lup.LU.nrows;
+    const cb = toRawCxVector(b);
+    if (cb[0].length !== n) {
+        throw new Error(`LUsolve: right-hand side has length ${cb[0].length}, expected ${n}`);
+    }
+    if (lup.LU.is_complex) {
+        const [re, im] = cxLUsolve(
+            { LUre: lup.LU.real as number[][], LUim: lup.LU.imag as number[][], P: lup.P }, cb);
+        return new Vector(re, im);
+    }
+    return solveRealLU({ LU: lup.LU.real as number[][], P: lup.P }, cb);
 }
 
-function rawLUsolve(lup: RawLUPResult, b: VectorLike): number[] {
+/** Solve with a real LU; a complex b is solved as two real systems. */
+function solveRealLU(lup: RawLUPResult, b: [number[], number[] | null]): Vector {
+    const re = rawLUsolve(lup, b[0]);
+    return b[1] === null ? new Vector(re) : new Vector(re, rawLUsolve(lup, b[1]));
+}
+
+function rawLUsolve(lup: RawLUPResult, b: number[]): number[] {
     const { LU: a, P } = lup;
     const n = a.length;
-    const rawB = toRawVector(b, "LUsolve");
-    if (rawB.length !== n) {
-        throw new Error(`LUsolve: right-hand side has length ${rawB.length}, expected ${n}`);
-    }
-    const x = rawB.slice();
+    const x = b.slice();
 
     // Apply permutation
     for (let i = 0; i < n; i++) {
@@ -144,5 +166,11 @@ function rawLUsolve(lup: RawLUPResult, b: VectorLike): number[] {
  * @returns     The solution vector x.
  */
 export function solve(A: MatrixLike, b: VectorLike): Vector {
-    return new Vector(rawLUsolve(rawLU(A, false), b));
+    if (isComplexTensor(A)) return LUsolve(LU(A), b);
+    const lup = rawLU(A, false);
+    const cb = toRawCxVector(b);
+    if (cb[0].length !== lup.LU.length) {
+        throw new Error(`solve: right-hand side has length ${cb[0].length}, expected ${lup.LU.length}`);
+    }
+    return solveRealLU(lup, cb);
 }

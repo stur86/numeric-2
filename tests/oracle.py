@@ -218,13 +218,28 @@ CX_UNARY_OPS = {
     "cx_conj": np.conj,
     "cx_abs": np.abs,
     "cx_clone": lambda x: x.copy(),
+    "cx_exp": np.exp,
+    "cx_log": np.log,
+    "cx_sqrt": np.sqrt,
+    "cx_sin": np.sin,
+    "cx_cos": np.cos,
 }
+
+# Complex reducers with a complex result
+CX_CX_REDUCERS = {
+    "cx_sum": np.sum,
+    "cx_prod": np.prod,
+}
+
+CX_COMPARISONS = ("cx_eq", "cx_neq")
 
 CX_BINARY_OPS = {
     "cx_add": np.add,
     "cx_sub": np.subtract,
     "cx_mul": np.multiply,
     "cx_div": np.divide,
+    "cx_eq": np.equal,
+    "cx_neq": np.not_equal,
 }
 
 CX_REDUCERS = {
@@ -268,6 +283,11 @@ def handle_cx_binary(req: dict) -> dict:
     if req.get("real_y"):
         y_arr = y_arr.real + 0j
 
+    if op in CX_COMPARISONS:
+        # make some elements (and the scalar) equal, so both outcomes occur
+        y_arr.reshape(-1)[::2] = x_arr.reshape(-1)[::2]
+        scalar = complex(x_arr.reshape(-1)[0])
+
     if op == "cx_div":
         # avoid division by zero
         y_arr = np.where(np.abs(y_arr) < 1e-10, 1.0 + 0j, y_arr)
@@ -275,16 +295,17 @@ def handle_cx_binary(req: dict) -> dict:
             scalar = 1.0 + 0j
 
     fn = CX_BINARY_OPS[op]
+    out = (lambda r: r.tolist()) if op in CX_COMPARISONS else cx_to_parts
 
     if variant == "VV":
         result = fn(x_arr, y_arr)
-        return {"inputs": {"x": cx_to_parts(x_arr), "y": cx_to_parts(y_arr)}, "expected": cx_to_parts(result)}
+        return {"inputs": {"x": cx_to_parts(x_arr), "y": cx_to_parts(y_arr)}, "expected": out(result)}
     elif variant == "VS":
         result = fn(x_arr, scalar)
-        return {"inputs": {"x": cx_to_parts(x_arr), "y": cx_to_parts(scalar)}, "expected": cx_to_parts(result)}
+        return {"inputs": {"x": cx_to_parts(x_arr), "y": cx_to_parts(scalar)}, "expected": out(result)}
     elif variant == "SV":
         result = fn(scalar, y_arr)
-        return {"inputs": {"x": cx_to_parts(scalar), "y": cx_to_parts(y_arr)}, "expected": cx_to_parts(result)}
+        return {"inputs": {"x": cx_to_parts(scalar), "y": cx_to_parts(y_arr)}, "expected": out(result)}
     else:
         raise ValueError(f"Unknown variant: {variant}")
 
@@ -316,6 +337,47 @@ def handle_getBlock1D(req: dict) -> dict:
     x = rng.standard_normal(n)
     result = x[fr:to]
     return {"inputs": {"x": x.tolist()}, "expected": result.tolist()}
+
+
+def handle_cx_cx_reducer(req: dict) -> dict:
+    rng = np.random.default_rng(req["seed"])
+    n = size(req)
+    x = rng.standard_normal(n) + 1j * rng.standard_normal(n)
+    result = complex(CX_CX_REDUCERS[req["op"]](x))
+    return {"inputs": {"x": cx_to_parts(x)}, "expected": cx_to_parts(result)}
+
+
+def cx_random(rng, shape, real: bool):
+    """Random complex array, or a real one (as complex dtype) if real=True."""
+    z = rng.standard_normal(shape) + 1j * rng.standard_normal(shape)
+    return z.real + 0j if real else z
+
+
+def handle_cx_linalg(req: dict) -> dict:
+    """cx_solve / cx_inv / cx_det on a well-conditioned complex matrix.
+    real_A / real_b make that input purely real (mixed real/complex cases)."""
+    rng = np.random.default_rng(req["seed"])
+    n = req["n"]
+    op = req["op"]
+    A = cx_random(rng, (n, n), req.get("real_A", False)) + n * np.eye(n)
+    if op == "cx_solve":
+        b = cx_random(rng, n, req.get("real_b", False))
+        return {"inputs": {"A": cx_to_parts(A), "b": cx_to_parts(b)}, "expected": cx_to_parts(np.linalg.solve(A, b))}
+    if op == "cx_inv":
+        return {"inputs": {"A": cx_to_parts(A)}, "expected": cx_to_parts(np.linalg.inv(A))}
+    if op == "cx_det":
+        return {"inputs": {"A": cx_to_parts(A)}, "expected": cx_to_parts(complex(np.linalg.det(A)))}
+    raise ValueError(f"Unknown op: {op}")
+
+
+def handle_cx_dot(req: dict) -> dict:
+    """Complex dot MV / VM / MM (unconjugated). real_x / real_y make one side real."""
+    rng = np.random.default_rng(req["seed"])
+    m, n, p = req["m"], req["n"], req.get("p", 1)
+    shapes = {"MV": ((m, n), n), "VM": (m, (m, n)), "MM": ((m, n), (n, p))}[req["variant"]]
+    x = cx_random(rng, shapes[0], req.get("real_x", False))
+    y = cx_random(rng, shapes[1], req.get("real_y", False))
+    return {"inputs": {"x": cx_to_parts(x), "y": cx_to_parts(y)}, "expected": cx_to_parts(np.dot(x, y))}
 
 
 def handle_cx_dot_VV(req: dict) -> dict:
@@ -392,6 +454,12 @@ def process(req: dict) -> dict:
         return handle_cx_binary(req)
     elif op in CX_REDUCERS:
         return handle_cx_reducer(req)
+    elif op in CX_CX_REDUCERS:
+        return handle_cx_cx_reducer(req)
+    elif op in ("cx_solve", "cx_inv", "cx_det"):
+        return handle_cx_linalg(req)
+    elif op == "cx_dot":
+        return handle_cx_dot(req)
     elif op == "getBlock":
         return handle_getBlock(req)
     elif op == "getBlock1D":

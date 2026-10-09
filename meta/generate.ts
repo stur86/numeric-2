@@ -10,6 +10,8 @@ import { CxVectorBinopMetaFunction } from "./cx.binop";
 import type { CxVectorBinopMetaFunctionArgs } from "./cx.binop";
 import { CxVectorReducerMetaFunction } from "./cx.reducer";
 import type { CxVectorReducerMetaFunctionArgs } from "./cx.reducer";
+import { CxVectorCxReducerMetaFunction } from "./cx.cxreducer";
+import type { CxVectorCxReducerMetaFunctionArgs } from "./cx.cxreducer";
 
 
 /**
@@ -124,6 +126,12 @@ const cxMapArgs: CxVectorMapMetaFunctionArgs[] = [
     { name: '_cx_v_conj', mapRe: 'x_re_i', mapIm: '-x_im_i' },
     { name: '_cx_v_abs', mapRe: 'Math.sqrt(x_re_i*x_re_i+x_im_i*x_im_i)', mapIm: '0' },
     { name: '_cx_v_clone', mapRe: 'x_re_i', mapIm: 'x_im_i' },
+    { name: '_cx_v_exp', mapPre: 'const e = Math.exp(x_re_i);', mapRe: 'e*Math.cos(x_im_i)', mapIm: 'e*Math.sin(x_im_i)' },
+    { name: '_cx_v_log', mapRe: 'Math.log(Math.sqrt(x_re_i*x_re_i+x_im_i*x_im_i))', mapIm: 'Math.atan2(x_im_i, x_re_i)' },
+    // Principal square root
+    { name: '_cx_v_sqrt', mapPre: 'const r = Math.sqrt(x_re_i*x_re_i+x_im_i*x_im_i);', mapRe: 'Math.sqrt((r+x_re_i)/2)', mapIm: '(x_im_i < 0 ? -1 : 1)*Math.sqrt((r-x_re_i)/2)' },
+    { name: '_cx_v_sin', mapRe: 'Math.sin(x_re_i)*Math.cosh(x_im_i)', mapIm: 'Math.cos(x_re_i)*Math.sinh(x_im_i)' },
+    { name: '_cx_v_cos', mapRe: 'Math.cos(x_re_i)*Math.cosh(x_im_i)', mapIm: '-Math.sin(x_re_i)*Math.sinh(x_im_i)' },
 ];
 
 let cxMapSource = "";
@@ -143,6 +151,9 @@ const cxBinopArgs: CxVectorBinopMetaFunctionArgs[] = [
     { name: 'sub', expressionRe: 'x_re_i - y_re_i', expressionIm: 'x_im_i - y_im_i' },
     { name: 'mul', expressionRe: 'x_re_i*y_re_i - x_im_i*y_im_i', expressionIm: 'x_re_i*y_im_i + x_im_i*y_re_i' },
     { name: 'div', expressionRe: '(x_re_i*y_re_i+x_im_i*y_im_i)/(y_re_i*y_re_i+y_im_i*y_im_i)', expressionIm: '(x_im_i*y_re_i-x_re_i*y_im_i)/(y_re_i*y_re_i+y_im_i*y_im_i)' },
+    // Boolean-valued comparisons (complex numbers are unordered: only eq/neq)
+    { name: 'eq', expression: 'x_re_i === y_re_i && x_im_i === y_im_i' },
+    { name: 'neq', expression: 'x_re_i !== y_re_i || x_im_i !== y_im_i' },
 ];
 
 let cxBinopSource = "";
@@ -171,4 +182,21 @@ for (const rArgs of cxReducerArgs) {
     cxReducerSource += reducer.compileSource() + '\n\n';
 }
 Bun.write(cxReducerFile, cxReducerSource);
+console.log("_____\n");
+
+// Complex reducers with a complex result
+const cxCxReducerFile = targetDir + "cx.cxreducers.ts";
+console.log(`Generating complex-valued reducers in ${cxCxReducerFile}:`);
+const cxCxReducerArgs: CxVectorCxReducerMetaFunctionArgs[] = [
+    { name: '_cx_v_sum', reduceRe: 'ans_re + x_re_i', reduceIm: 'ans_im + x_im_i' },
+    { name: '_cx_v_prod', reduceRe: 'ans_re*x_re_i - ans_im*x_im_i', reduceIm: 'ans_re*x_im_i + ans_im*x_re_i' },
+];
+
+let cxCxReducerSource = "";
+for (const rArgs of cxCxReducerArgs) {
+    const reducer = new CxVectorCxReducerMetaFunction(rArgs);
+    console.log(`  ${reducer.name}`);
+    cxCxReducerSource += reducer.compileSource() + '\n\n';
+}
+Bun.write(cxCxReducerFile, cxCxReducerSource);
 console.log("_____\n");

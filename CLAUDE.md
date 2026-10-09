@@ -8,7 +8,8 @@ The original numeric.js is at `../numeric` relative to this project. Its documen
 
 ## Project Structure
 
-- `index.ts` — Public entry point. Exports `Vector`, `Matrix`, `linalg`, and utility functions.
+- `index.ts` — Public entry point. Exports `Vector`, `Matrix`, `linalg`, `complex`/`isComplex` (+ `Complex`/`Scalar` types), and utility functions.
+- `src/complex.ts` — `Complex = {re, im}` scalar type, `Scalar = number | Complex`, `complex()`, `isComplex()`.
 - `src/base.ts` — `TensorBase` class: base for all tensors, stores `_re`, `_im`, `_shape`.
 - `src/vector.ts` — `Vector` class (1D tensor).
 - `src/matrix.ts` — `Matrix` class (2D tensor).
@@ -18,9 +19,10 @@ The original numeric.js is at `../numeric` relative to this project. Its documen
   - `maps.ts` — Generated unary element-wise ops (sqrt, abs, sin, cos, neg, ceil, floor, round, etc.).
   - `binops.ts` — Generated binary element-wise ops with VV/VS/SV variants (add, sub, mul, div, comparisons, etc.).
   - `extra.reducers.ts` — Hand-written boolean reducers (any, all). Also registered in `NumericCore` as `_re_v_any`/`_re_v_all` (truthiness on real data).
-  - `cx.maps.ts` — Generated complex unary ops (neg, conj, abs, clone). Return `[number[], number[]]`.
-  - `cx.binops.ts` — Generated complex binary ops with VV/VS/SV variants (add, sub, mul, div). Return `[number[], number[]]`.
+  - `cx.maps.ts` — Generated complex unary ops (neg, conj, abs, clone, exp, log, sqrt, sin, cos). Return `[number[], number[]]`.
+  - `cx.binops.ts` — Generated complex binary ops with VV/VS/SV variants (add, sub, mul, div → `[number[], number[]]`; eq, neq → `boolean[]`).
   - `cx.reducers.ts` — Generated complex reducers (norm2, norm2squared, norm1, normInf). Return `number`.
+  - `cx.cxreducers.ts` — Generated complex-valued reducers (sum, prod). Return `[number, number]`.
   - `core.ts` — `NumericCore` static class aggregating all core functions (real + complex).
   - `utils.ts` — `UnaryMethod` and `BinaryMethod` dispatchers that resolve tensor type/dtype to core functions.
   - `dot.ts` — Low-level dot product implementations (dotVV, dotMV, dotVM, dotMMsmall, dotMMbig).
@@ -36,6 +38,7 @@ The original numeric.js is at `../numeric` relative to this project. Its documen
   - `det.ts` — Determinant via Gaussian elimination.
   - `house.ts` — Householder reflection (`house`), upper Hessenberg reduction (`toUpperHessenberg`, H = Q·A·Qᵀ), QR Francis iteration (`QRFrancis`), `epsilon`. Public versions wrap results in `Vector`/`Matrix`; the raw `houseRaw`/`toUpperHessenbergRaw`/`QRFrancisRaw` are used internally by `eig`.
   - `cxmat.ts` — **Internal.** Complex matrix/vector/scalar helpers (`CxMatrix`, `CxVector`, `CxScalar` types) for eigenvalue decomposition. Lightweight standalone functions operating on `[number[][], number[][] | null]` pairs with lazy imaginary allocation. Not exported from the public API.
+  - `cxlinalg.ts` — **Internal.** Complex LU (`cxLU`), `cxLUsolve`, `cxInv`, `cxDet` on split re/im arrays; used by the public `LU`/`LUsolve`/`solve`/`inv`/`det` when an input is complex.
   - `cxhouse.ts` — **Internal.** Complex Householder reflection (`cxHouse`), complex upper Hessenberg reduction (`cxToUpperHessenberg`), and complex single-shift QR iteration (`cxQR`). Used by the complex eigenvalue decomposition path.
   - `eig.ts` — Eigenvalue decomposition (`eig`). Accepts `MatrixLike` (real or complex), returns `{lambda: Vector, E: Matrix}` satisfying `A * E = E * diag(lambda)`. Real matrices use Householder → Francis QR → 2×2 block processing. Complex matrices use complex Householder → single-shift QR (no 2×2 blocks needed). Complex eigenvalues/eigenvectors use the `_im` field on Vector/Matrix.
 
@@ -95,6 +98,15 @@ Each template is a `.tjs` file with `$PLACEHOLDER` tokens that the meta class fi
 - Expression variables: `x_re_i`, `x_im_i`, `y_re_i`, `y_im_i` → replaced per variant (VV: all `[i]`; VS: y as scalar; SV: x as scalar)
 - The meta class generates all three variants, prefixing `_cx_v_{name}{variant}`.
 
+**Complex map** also accepts an optional `mapPre` statement run per element before `mapRe`/`mapIm` (placeholder `$MAP_PRE`), to share work such as `const e = Math.exp(x_re_i);`.
+
+**Complex boolean binop** (`cx.v.binop.bool.template.tjs`): `(x_re, x_im, y_re, y_im, n) → boolean[]`
+- Selected by passing `{ name, expression }` (instead of `expressionRe`/`expressionIm`) to `CxVectorBinopMetaFunction`.
+
+**Complex-valued reducer** (`cx.v.cxreducer.template.tjs`): `(x_re: number[], x_im: number[], n) → [number, number]`
+- Placeholders: `$NAME`, `$INIT_RE`, `$INIT_IM`, `$REDUCE_RE`, `$REDUCE_IM`
+- Expression variables: `x_re_i`, `x_im_i`, and the accumulator `ans_re`, `ans_im` (both reduce expressions see the previous accumulator). Init defaults to the element at `i = n-1`.
+
 **Complex reducer** (`cx.v.reducer.template.tjs`): `(x_re: number[], x_im: number[], n) → number`
 - Placeholders: same as real reducer
 - Expression variables: `x_re_i`, `x_im_i` → replaced with `x_re[i]`, `x_im[i]`
@@ -109,6 +121,7 @@ Each template is a `.tjs` file with `$PLACEHOLDER` tokens that the meta class fi
 | `CxVectorMapMetaFunction` | `meta/cx.map.ts` | `cx.v.map.template.tjs` | `{ name, mapRe, mapIm }` |
 | `CxVectorBinopMetaFunction` | `meta/cx.binop.ts` | `cx.v.binop.template.tjs` | `{ name, expressionRe, expressionIm }` |
 | `CxVectorReducerMetaFunction` | `meta/cx.reducer.ts` | `cx.v.reducer.template.tjs` | `{ name, reduceElement, reduceOperator?, initElement?, resultTransform? }` |
+| `CxVectorCxReducerMetaFunction` | `meta/cx.cxreducer.ts` | `cx.v.cxreducer.template.tjs` | `{ name, reduceRe, reduceIm, initRe?, initIm? }` |
 
 ### Generated output files
 
@@ -120,6 +133,7 @@ Each template is a `.tjs` file with `$PLACEHOLDER` tokens that the meta class fi
 | `generate.ts` cx maps section | `src/core/cx.maps.ts` | `_cx_v_neg`, `_cx_v_conj`, `_cx_v_abs`, `_cx_v_clone` |
 | `generate.ts` cx binops section | `src/core/cx.binops.ts` | `_cx_v_addVV/VS/SV`, `_cx_v_mulVV/VS/SV`, etc. |
 | `generate.ts` cx reducers section | `src/core/cx.reducers.ts` | `_cx_v_norm2`, `_cx_v_norm2squared`, `_cx_v_norm1`, `_cx_v_normInf` |
+| `generate.ts` cx-valued reducers section | `src/core/cx.cxreducers.ts` | `_cx_v_sum`, `_cx_v_prod` |
 
 Hand-written (not generated): `extra.reducers.ts` (`_bool_v_any`, `_bool_v_all`), `dot.ts`.
 
@@ -156,7 +170,7 @@ Core functions follow the pattern `_{dtype}_{optype}_{name}[{variant}]`:
 - Binop VV: `(x_re: number[], x_im: number[], y_re: number[], y_im: number[], n: number) → [number[], number[]]`
 - Binop VS: `(x_re: number[], x_im: number[], y_re: number, y_im: number, n: number) → [number[], number[]]`
 - Binop SV: `(x_re: number, x_im: number, y_re: number[], y_im: number[], n: number) → [number[], number[]]`
-- Reducer: `(x_re: number[], x_im: number[], n: number) → number`
+- Reducer: `(x_re: number[], x_im: number[], n: number) → number`, or `→ [number, number]` for complex-valued reducers
 
 ## Performance Patterns
 
@@ -173,8 +187,9 @@ Linalg functions should accept both raw arrays (`number[]`, `number[][]`) and Te
 - **Input types**: `MatrixLike = Matrix | number[][]`, `VectorLike = Vector | number[]` (defined in `src/linalg/wrap.ts`).
 - **Extraction**: `toRawMatrix(x)` / `toRawVector(x)` cheaply extract the raw `.real` data at the function boundary.
 - **Internal algorithms** operate on raw `number[]` / `number[][]` for performance — no class overhead in hot loops.
-- **Results** are wrapped in `Vector`/`Matrix` at the return boundary, using the `_im` field for complex results. Scalars stay `number`; boolean results (comparisons) stay `boolean[]`.
-- **Real-only routines** must reject complex inputs (`toRawMatrix`/`toRawVector` throw on them) rather than silently dropping `_im`.
+- **Results** are wrapped in `Vector`/`Matrix` at the return boundary, using the `_im` field for complex results. Boolean results (comparisons) stay `boolean[]`.
+- **Complex scalars** are `Complex = {re, im}` (`src/complex.ts`), accepted wherever a scalar operand is. A scalar result is a `Complex` if and only if an input was complex (even when its imaginary part is 0). Functions that can return a complex scalar are typed `Scalar` (`number | Complex`) for `Vector`/`Matrix` inputs, with overloads returning plain `number` for raw-array inputs. A `Complex` operand with `im === 0` is treated as a real scalar.
+- **Real-only routines** (currently `house`, `toUpperHessenberg`, `QRFrancis`, the ordered comparisons, `sup`/`inf`/`any`/`all`, and maps without a `_cx_` kernel) must reject complex inputs (`toRawMatrix`/`toRawVector` throw on them) rather than silently dropping `_im`.
 - **Internal reuse:** when one algorithm needs another's raw output (e.g. `eig` → `toUpperHessenberg`), keep an unexported or `*Raw` raw-array version and have the public function wrap it. The low-level `dotVV`/`dotMV`/`dotVM`/`dotMM*` kernels and the array utilities in `src/utils.ts` intentionally stay raw.
 - **Internal types** like `CxMatrix`, `CxVector`, `CxScalar` from `cxmat.ts` are NOT exported from the public API.
 
@@ -207,6 +222,7 @@ A cross-language validation framework that compares numeric-2 results against Nu
 - `tests/runner.ts` — Bun helper that spawns `uv run python tests/oracle.py`, sends requests, and parses responses. Provides `oracle()`, `assertClose()`, `assertClose2D()`, `assertScalarClose()`.
 - `tests/pyproject.toml` — uv project config (numpy dependency). Run `cd tests && uv sync` to install.
 - Test files: `unary.test.ts`, `binary.test.ts`, `reducers.test.ts`, `dot.test.ts`, `linalg.test.ts`, `complex.test.ts`, `eig.test.ts`, `utilities.test.ts`, `complex-dispatch.test.ts`, `elementwise.test.ts` (public API on vectors and matrices)
+- `cx-linalg.test.ts` covers complex solve/LU/inv/det/dot and complex element-wise ops (incl. complex scalar operands).
 - Element-wise oracle ops accept `"shape": [m, n]` instead of `"n"` to produce matrix inputs; `cx_*` binary ops accept `real_x`/`real_y` to make one operand purely real. Oracle exceptions come back as `{"error": ...}` and the runner raises them as test failures.
 
 The oracle returns inputs and expected outputs so the TS side uses the oracle's inputs directly (no cross-language RNG matching needed). Note: JS `%` uses truncated division (`np.fmod`), not floored division (`np.mod`).

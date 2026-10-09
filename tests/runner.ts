@@ -21,6 +21,8 @@ function realData<T>(x: T | TensorBase, label: string): T {
 export type OracleRequest =
     | { op: string; seed: number; n: number; variant?: string; real_x?: boolean; real_y?: boolean }
     | { op: string; seed: number; shape: [number, number]; variant?: string; real_x?: boolean; real_y?: boolean }
+    | { op: "cx_solve" | "cx_inv" | "cx_det"; seed: number; n: number; real_A?: boolean; real_b?: boolean }
+    | { op: "cx_dot"; variant: "MV" | "VM" | "MM"; seed: number; m: number; n: number; p?: number; real_x?: boolean; real_y?: boolean }
     | { op: "dot"; variant: string; seed: number; n?: number; m?: number; p?: number }
     | { op: "solve" | "inv" | "det"; seed: number; n: number };
 
@@ -213,11 +215,15 @@ export function assertClose2D(
  * Compare two scalars within a tolerance.
  */
 export function assertScalarClose(
-    actual: number,
+    actualIn: number | { re: number; im: number },
     expected: number,
     tol: number = 1e-10,
     label: string = ""
 ): void {
+    if (typeof actualIn !== "number") {
+        throw new Error(`${label}expected a real number, got a complex one`);
+    }
+    const actual = actualIn;
     const diff = Math.abs(actual - expected);
     const denom = Math.max(1, Math.abs(expected));
     if (diff / denom > tol) {
@@ -226,3 +232,21 @@ export function assertScalarClose(
         );
     }
 }
+
+/**
+ * Compare a complex scalar result against expected {re, im} parts.
+ */
+export function assertComplexClose(
+    actual: unknown,
+    expected: { re: number; im: number },
+    tol: number = 1e-10,
+    label: string = ""
+): void {
+    const a = actual as { re: number; im: number };
+    if (typeof a !== "object" || a === null || typeof a.re !== "number" || typeof a.im !== "number") {
+        throw new Error(`${label}expected a Complex, got ${JSON.stringify(actual)}`);
+    }
+    assertScalarClose(a.re, expected.re, tol, `${label}re `);
+    assertScalarClose(a.im, expected.im, tol, `${label}im `);
+}
+

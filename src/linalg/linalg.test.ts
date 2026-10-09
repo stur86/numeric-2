@@ -179,7 +179,7 @@ test("solve 5x5", () => {
 
 import Matrix from "../matrix";
 import Vector from "../vector";
-import { add, eq } from "./arithmetic";
+import { add, eq, lt } from "./arithmetic";
 import { normInf } from "./norm";
 
 test("Matrix inputs give the same results as raw arrays", () => {
@@ -193,12 +193,9 @@ test("Matrix inputs give the same results as raw arrays", () => {
 
 test("real-only routines reject complex inputs", () => {
     const C = new Matrix([[1, 2], [3, 4]], [[0, 1], [1, 0]]);
-    expect(() => det(C)).toThrow("complex");
-    expect(() => inv(C)).toThrow("complex");
-    expect(() => LU(C)).toThrow("complex");
-    expect(() => solve(C, [1, 1])).toThrow("complex");
-    expect(() => solve([[1, 0], [0, 1]], new Vector([1, 1], [1, 1]))).toThrow("complex");
-    expect(() => dot(C, [1, 1])).toThrow("complex");
+    expect(() => toUpperHessenberg(C)).toThrow("complex");
+    expect(() => QRFrancis(C)).toThrow("complex");
+    expect(() => house(new Vector([1, 1], [1, 1]))).toThrow("complex");
 });
 
 test("non-square matrices are rejected", () => {
@@ -218,7 +215,8 @@ test("shape mismatches are rejected", () => {
 
 test("unsupported complex ops give a clear error", () => {
     const c = new Vector([1, 2], [1, -1]);
-    expect(() => eq(c, c)).toThrow("eq is not supported for complex tensors");
+    expect(() => lt(c, c)).toThrow("lt is not supported for complex tensors");
+    expect(eq(c, c)).toEqual([true, true]);
     expect(normInf(c)).toBeCloseTo(Math.sqrt(5), 12);
 });
 

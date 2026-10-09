@@ -54,12 +54,19 @@ import {
     _cx_v_conj,
     _cx_v_abs,
     _cx_v_clone,
+    _cx_v_exp,
+    _cx_v_log,
+    _cx_v_sqrt,
+    _cx_v_sin,
+    _cx_v_cos,
 } from "./cx.maps";
 import {
     _cx_v_addVV, _cx_v_addVS, _cx_v_addSV,
     _cx_v_subVV, _cx_v_subVS, _cx_v_subSV,
     _cx_v_mulVV, _cx_v_mulVS, _cx_v_mulSV,
     _cx_v_divVV, _cx_v_divVS, _cx_v_divSV,
+    _cx_v_eqVV, _cx_v_eqVS, _cx_v_eqSV,
+    _cx_v_neqVV, _cx_v_neqVS, _cx_v_neqSV,
 } from "./cx.binops";
 import {
     _cx_v_norm2,
@@ -67,6 +74,10 @@ import {
     _cx_v_norm1,
     _cx_v_normInf,
 } from "./cx.reducers";
+import {
+    _cx_v_sum,
+    _cx_v_prod,
+} from "./cx.cxreducers";
 
 export default class NumericCore {
     // Reducers
@@ -153,6 +164,11 @@ export default class NumericCore {
     static _cx_v_conj = _cx_v_conj;
     static _cx_v_abs = _cx_v_abs;
     static _cx_v_clone = _cx_v_clone;
+    static _cx_v_exp = _cx_v_exp;
+    static _cx_v_log = _cx_v_log;
+    static _cx_v_sqrt = _cx_v_sqrt;
+    static _cx_v_sin = _cx_v_sin;
+    static _cx_v_cos = _cx_v_cos;
     // Complex binary ops
     static _cx_v_addVV = _cx_v_addVV;
     static _cx_v_addVS = _cx_v_addVS;
@@ -166,9 +182,18 @@ export default class NumericCore {
     static _cx_v_divVV = _cx_v_divVV;
     static _cx_v_divVS = _cx_v_divVS;
     static _cx_v_divSV = _cx_v_divSV;
+    static _cx_v_eqVV = _cx_v_eqVV;
+    static _cx_v_eqVS = _cx_v_eqVS;
+    static _cx_v_eqSV = _cx_v_eqSV;
+    static _cx_v_neqVV = _cx_v_neqVV;
+    static _cx_v_neqVS = _cx_v_neqVS;
+    static _cx_v_neqSV = _cx_v_neqSV;
     // Complex reducers
     static _cx_v_norm2 = _cx_v_norm2;
     static _cx_v_norm2squared = _cx_v_norm2squared;
     static _cx_v_norm1 = _cx_v_norm1;
     static _cx_v_normInf = _cx_v_normInf;
+
+    static _cx_v_sum = _cx_v_sum;
+    static _cx_v_prod = _cx_v_prod;
 };

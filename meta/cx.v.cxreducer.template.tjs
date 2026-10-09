@@ -1,0 +1,13 @@
+export function $NAME(x_re: number[], x_im: number[], n: number): [number, number] {
+    let i = n-1,
+        ans_re = $INIT_RE,
+        ans_im = $INIT_IM,
+        t_re: number;
+    --i;
+    for (; i >= 0; i -= 1) {
+        t_re = $REDUCE_RE;
+        ans_im = $REDUCE_IM;
+        ans_re = t_re;
+    }
+    return [ans_re, ans_im];
+}

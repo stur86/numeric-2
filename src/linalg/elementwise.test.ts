@@ -2,7 +2,7 @@ import { test, expect } from "bun:test";
 import Vector from "../vector";
 import Matrix from "../matrix";
 import { add, mul, lt } from "./arithmetic";
-import { sqrt, abs, neg, conj, isNaN, isFinite } from "./elementwise";
+import { sqrt, abs, neg, conj, tan, isNaN, isFinite } from "./elementwise";
 import { sum, prod, sup, inf, any, all } from "./reduce";
 import { norm2 } from "./norm";
 
@@ -78,7 +78,59 @@ test("complex abs and neg", () => {
 test("errors", () => {
     expect(() => add(new Vector([1, 2]), new Matrix([[1, 2]]))).toThrow("cannot combine a vector with a matrix");
     expect(() => add([[1, 2], [3, 4]], [[1, 2, 3], [4, 5, 6]])).toThrow("shape mismatch (2x2 vs 2x3)");
-    expect(() => sqrt(new Vector([1], [1]))).toThrow("sqrt is not supported for complex tensors");
-    expect(() => sum(new Matrix([[1]], [[1]]))).toThrow("sum is not supported for complex tensors");
+    expect(() => tan(new Vector([1], [1]))).toThrow("tan is not supported for complex tensors");
+    expect(() => sup(new Matrix([[1]], [[1]]))).toThrow("sup is not supported for complex tensors");
     expect(() => lt(new Vector([1], [1]), 1)).toThrow("lt is not supported for complex tensors");
+});
+
+// Complex scalars
+
+import { complex, isComplex, type Complex, type Scalar } from "../complex";
+import { dot } from "./dot";
+import { det } from "./det";
+import { inv } from "./inv";
+
+test("complex scalar API types", () => {
+    // These annotations are checked by tsc
+    const a: number = sum([1, 2, 3]);
+    const b: Scalar = sum(new Vector([1, 2]));
+    const c: number = dot([1, 2], [3, 4]);
+    const d: Scalar = dot(new Vector([1, 2]), new Vector([3, 4]));
+    const e: number = det([[1, 2], [3, 4]]);
+    const f: Vector = mul(new Vector([1, 2]), complex(0, 1));
+    const g: Matrix = dot(complex(0, 1), [[1, 2]]);
+    expect(a).toBe(6);
+    expect(b).toBe(3);
+    expect(c).toBe(11);
+    expect(d).toBe(11);
+    expect(e).toBeCloseTo(-2, 12);
+    expect(f.imag).toEqual([1, 2]);
+    expect(g.imag).toEqual([[1, 2]]);
+});
+
+test("complex results are Complex even when the imaginary part is zero", () => {
+    const s = sum(new Vector([1, 2], [1, -1]));
+    expect(isComplex(s)).toBe(true);
+    expect(s).toEqual({ re: 3, im: 0 });
+});
+
+test("a Complex scalar with zero imaginary part acts as a real scalar", () => {
+    const out = mul(new Vector([1, 2]), complex(3));
+    expect(out.is_complex).toBe(false);
+    expect(out.real).toEqual([3, 6]);
+});
+
+test("complex scalar times complex scalar", () => {
+    expect(dot(complex(1, 2), complex(3, 4))).toEqual({ re: -5, im: 10 });
+    expect(dot(2, complex(3, 4))).toEqual({ re: 6, im: 8 });
+});
+
+test("complex singular matrices", () => {
+    const S = new Matrix([[1, 2], [2, 4]], [[1, 2], [2, 4]]);
+    expect(det(S)).toEqual({ re: 0, im: 0 });
+    expect(() => inv(S)).toThrow("singular");
+    const z = det(new Matrix([[0, 1], [1, 0]], [[1, 0], [0, 1]])) as Complex;
+    // det [[i, 1], [1, i]] = i*i - 1 = -2
+    expect(z.re).toBeCloseTo(-2, 12);
+    expect(z.im).toBeCloseTo(0, 12);
 });
