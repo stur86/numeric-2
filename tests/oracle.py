@@ -496,6 +496,56 @@ def handle_ode(req: dict) -> dict:
     return {"inputs": {"y0": y0, "x1": x1, "ts": ts.tolist()}, "expected": res.sol(ts).T.tolist()}
 
 
+def handle_sparse(req: dict) -> dict:
+    """Random sparse matrices (as dense lists) and scipy.sparse results."""
+    import scipy.sparse as sp
+    rng = np.random.default_rng(req["seed"])
+    m, n, p, dens = req["m"], req["n"], req.get("p", 3), req["density"]
+    rand = lambda r, c: sp.random(r, c, density=dens, random_state=rng, format="csc", data_rvs=rng.standard_normal)
+    A, B, C = rand(m, n), rand(m, n), rand(n, p)
+    x = rng.standard_normal(n)
+    y = rng.standard_normal(m)
+    D = rng.standard_normal((n, p))
+    rows = rng.integers(0, m, size=max(1, m // 2)).tolist()
+    cols = rng.integers(0, n, size=max(1, n // 2)).tolist()
+    exp = {
+        "add": (A + B).toarray().tolist(), "sub": (A - B).toarray().tolist(),
+        "mul": A.multiply(B).toarray().tolist(), "scale": (2.5 * A).toarray().tolist(),
+        "dotSS": (A @ C).toarray().tolist(), "dotSV": (A @ x).tolist(), "dotVS": (y @ A).tolist(),
+        "dotSD": (A @ D).tolist(), "T": A.T.toarray().tolist(), "nnzA": int(A.nnz),
+        "block": A[rows, :][:, cols].toarray().tolist(),
+    }
+    inputs = {"A": A.toarray().tolist(), "B": B.toarray().tolist(), "C": C.toarray().tolist(),
+              "x": x.tolist(), "y": y.tolist(), "D": D.tolist(), "rows": rows, "cols": cols}
+    return {"inputs": inputs, "expected": exp}
+
+
+def handle_sparse_solve(req: dict) -> dict:
+    """Square sparse systems: "random" (plus a dominant diagonal), "permuted"
+    (needs row pivoting) or "poisson" (2-D Laplacian on a k×k grid)."""
+    import scipy.sparse as sp
+    from scipy.sparse.linalg import spsolve
+    rng = np.random.default_rng(req["seed"])
+    kind, n = req["kind"], req["n"]
+    if kind == "poisson":
+        k = int(round(np.sqrt(n)))
+        T = sp.diags([-1, 2, -1], [-1, 0, 1], shape=(k, k))
+        A = (sp.kron(sp.identity(k), T) + sp.kron(T, sp.identity(k))).tocsc()
+    else:
+        A = sp.random(n, n, density=req.get("density", 0.1), random_state=rng, format="csc", data_rvs=rng.standard_normal)
+        A = (A + sp.diags(rng.uniform(1, 2, n) * (3 if kind == "random" else 0.0))).tocsc()
+        if kind == "permuted":
+            # A row permutation of a nonsingular matrix: zero diagonal entries force pivoting
+            M = sp.random(n, n, density=req.get("density", 0.1), random_state=rng, format="csc", data_rvs=rng.standard_normal)
+            M = (M + sp.diags(rng.uniform(2, 3, n))).tocsr()
+            A = M[rng.permutation(n)].tocsc()
+    b = rng.standard_normal(A.shape[0])
+    C = A.tocoo()
+    # Triplets, not dense: large Poisson systems would be millions of numbers
+    inputs = {"n": A.shape[0], "rows": C.row.tolist(), "cols": C.col.tolist(), "vals": C.data.tolist(), "b": b.tolist()}
+    return {"inputs": inputs, "expected": spsolve(A, b).tolist()}
+
+
 def handle_cx_dot_VV(req: dict) -> dict:
     rng = np.random.default_rng(req["seed"])
     n = req["n"]
@@ -588,6 +638,10 @@ def process(req: dict) -> dict:
         return handle_spline(req)
     elif op == "ode":
         return handle_ode(req)
+    elif op == "sparse":
+        return handle_sparse(req)
+    elif op == "sparse_solve":
+        return handle_sparse_solve(req)
     elif op == "getBlock":
         return handle_getBlock(req)
     elif op == "getBlock1D":

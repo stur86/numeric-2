@@ -8,7 +8,7 @@ The original numeric.js is at `../numeric` relative to this project. Its documen
 
 ## Project Structure
 
-- `index.ts` — Public entry point. Exports `Vector`, `Matrix`, `linalg`, `optimize`, `interpolate`, `ode`, `complex`/`isComplex` (+ `Complex`/`Scalar` types), and utility functions.
+- `index.ts` — Public entry point. Exports `Vector`, `Matrix`, `SparseMatrix`, `linalg`, `sparse`, `optimize`, `interpolate`, `ode`, `complex`/`isComplex` (+ `Complex`/`Scalar` types), and utility functions.
 - `src/complex.ts` — `Complex = {re, im}` scalar type, `Scalar = number | Complex`, `complex()`, `isComplex()`.
 - `src/base.ts` — `TensorBase` class: base for all tensors, stores `_re`, `_im`, `_shape`.
 - `src/vector.ts` — `Vector` class (1D tensor).
@@ -28,6 +28,10 @@ The original numeric.js is at `../numeric` relative to this project. Its documen
   - `dot.ts` — Low-level dot product implementations (dotVV, dotMV, dotVM, dotMMsmall, dotMMbig).
 - `src/interpolate/` — Public interpolation API (`interpolate` namespace).
   - `spline.ts` — `spline(x, y, boundary)` → generic `Spline<"scalar" | "vector">` with `at`, `diff`, `roots`. Stored as piecewise cubic Hermite segments (separate left/right values and slopes per knot, so `diff()` is exact). Boundary: `"natural"` (default), `"periodic"`, or `{left, right}` end slopes. Slopes come from an O(n) tridiagonal (Thomas) solve; periodic uses Sherman–Morrison. Differences from numeric.js: periodic splines wrap outside the knots, and `roots()` correctly finds two roots inside one segment (numeric.js compared local-coordinate turning points with absolute x).
+- `src/sparse/` — Sparse matrices (`sparse` namespace, plus `SparseMatrix` at top level).
+  - `sparse.ts` — `SparseMatrix`: compressed column storage (`colPtr`, `rowIdx`, `values`, explicit shape). Canonical form everywhere: rows strictly increasing within a column, no explicit zeros. Constructors `fromDense`, `fromTriplets` (duplicates summed), `identity`, `diag`; `toDense`, `toTriplets`, `get`, `transpose`, `mapValues`.
+  - `ops.ts` — `add`/`sub`/`mul` (sparse–sparse via generated `_re_s_*SS` kernels; `mul`/`div` by a scalar reuse the vector kernels on the values), `neg`, `dot` (sparse×sparse Gustavson, sparse×vector, vector×sparse, sparse×dense, dense×sparse), `getBlock`.
+  - `lu.ts` — `lu(A, {threshold})` → `SparseLU {L, U, p, solve}` with P·A = L·U (left-looking Gilbert–Peierls with DFS reach, partial pivoting preferring the diagonal), and `solve(A, b)`.
 - `src/ode/` — Public ODE API (`ode` namespace).
   - `dopri.ts` — `dopri(x0, x1, y0, f, {tol, maxit, event})`: Dormand–Prince 5(4), absolute tolerance on the infinity norm, dense output via `DopriSolution.at`. Scalar (`y0: number`, f on numbers) or system (`y0: VectorLike`, f on plain arrays). Events stop at the first negative → zero-or-positive crossing (numeric.js required > 0 and missed exact zeros). NaN error estimates reject the step; the "Step size became too small" message is actually reported (numeric.js set the wrong field).
 - `src/optimize/` — Public optimization API (`optimize` namespace). Objective/gradient callbacks receive plain `number[]`.
@@ -132,6 +136,7 @@ Each template is a `.tjs` file with `$PLACEHOLDER` tokens that the meta class fi
 | `CxVectorBinopMetaFunction` | `meta/cx.binop.ts` | `cx.v.binop.template.tjs` | `{ name, expressionRe, expressionIm }` |
 | `CxVectorReducerMetaFunction` | `meta/cx.reducer.ts` | `cx.v.reducer.template.tjs` | `{ name, reduceElement, reduceOperator?, initElement?, resultTransform? }` |
 | `CxVectorCxReducerMetaFunction` | `meta/cx.cxreducer.ts` | `cx.v.cxreducer.template.tjs` | `{ name, reduceRe, reduceIm, initRe?, initIm? }` |
+| `SparseBinopMetaFunction` | `meta/sparse.binop.ts` | `s.binop.template.tjs` | `{ name, expression }` (x_i, y_i; merges two sorted CCS patterns, drops zeros — only ops with op(0,0)=0) |
 
 ### Generated output files
 
@@ -144,6 +149,7 @@ Each template is a `.tjs` file with `$PLACEHOLDER` tokens that the meta class fi
 | `generate.ts` cx binops section | `src/core/cx.binops.ts` | `_cx_v_addVV/VS/SV`, `_cx_v_mulVV/VS/SV`, etc. |
 | `generate.ts` cx reducers section | `src/core/cx.reducers.ts` | `_cx_v_norm2`, `_cx_v_norm2squared`, `_cx_v_norm1`, `_cx_v_normInf` |
 | `generate.ts` cx-valued reducers section | `src/core/cx.cxreducers.ts` | `_cx_v_sum`, `_cx_v_prod` |
+| `generate.ts` sparse binops section | `src/core/sparse.binops.ts` | `_re_s_addSS`, `_re_s_subSS`, `_re_s_mulSS` |
 
 Hand-written (not generated): `extra.reducers.ts` (`_bool_v_any`, `_bool_v_all`), `dot.ts`.
 
@@ -233,7 +239,7 @@ A cross-language validation framework that compares numeric-2 results against Nu
 - `tests/oracle.py` — Python script that accepts NDJSON on stdin, generates seeded random data with NumPy, computes reference results, and outputs NDJSON responses with both inputs and expected outputs.
 - `tests/runner.ts` — Bun helper that spawns `uv run python tests/oracle.py`, sends requests, and parses responses. Provides `oracle()`, `assertClose()`, `assertClose2D()`, `assertScalarClose()`.
 - `tests/pyproject.toml` — uv project config (numpy and scipy; scipy provides LP/QP references via `linprog` and SLSQP). Run `cd tests && uv sync` to install.
-- Test files: `unary.test.ts`, `binary.test.ts`, `reducers.test.ts`, `dot.test.ts`, `linalg.test.ts`, `complex.test.ts`, `eig.test.ts`, `utilities.test.ts`, `complex-dispatch.test.ts`, `elementwise.test.ts` (public API on vectors and matrices), `cx-linalg.test.ts`, `fft.test.ts`, `ode.test.ts` (vs analytic solutions and scipy DOP853 at 1e-13), `spline.test.ts` (vs scipy CubicSpline: values, derivatives, roots), `optimize.test.ts` (LP vs linprog, QP vs SLSQP, uncmin on known minimizers), `svd.test.ts` (singular values vs NumPy, plus reconstruction and orthonormality, since singular vectors are sign-ambiguous)
+- Test files: `unary.test.ts`, `binary.test.ts`, `reducers.test.ts`, `dot.test.ts`, `linalg.test.ts`, `complex.test.ts`, `eig.test.ts`, `utilities.test.ts`, `complex-dispatch.test.ts`, `elementwise.test.ts` (public API on vectors and matrices), `cx-linalg.test.ts`, `fft.test.ts`, `sparse.test.ts` (vs scipy.sparse and spsolve; matrices sent as triplets), `ode.test.ts` (vs analytic solutions and scipy DOP853 at 1e-13), `spline.test.ts` (vs scipy CubicSpline: values, derivatives, roots), `optimize.test.ts` (LP vs linprog, QP vs SLSQP, uncmin on known minimizers), `svd.test.ts` (singular values vs NumPy, plus reconstruction and orthonormality, since singular vectors are sign-ambiguous)
 - `cx-linalg.test.ts` covers complex solve/LU/inv/det/dot and complex element-wise ops (incl. complex scalar operands).
 - Element-wise oracle ops accept `"shape": [m, n]` instead of `"n"` to produce matrix inputs; `cx_*` binary ops accept `real_x`/`real_y` to make one operand purely real. Oracle exceptions come back as `{"error": ...}` and the runner raises them as test failures.
 

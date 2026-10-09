@@ -11,6 +11,8 @@ import type { CxVectorBinopMetaFunctionArgs } from "./cx.binop";
 import { CxVectorReducerMetaFunction } from "./cx.reducer";
 import type { CxVectorReducerMetaFunctionArgs } from "./cx.reducer";
 import { CxVectorCxReducerMetaFunction } from "./cx.cxreducer";
+import { SparseBinopMetaFunction } from "./sparse.binop";
+import type { SparseBinopMetaFunctionArgs } from "./sparse.binop";
 import type { CxVectorCxReducerMetaFunctionArgs } from "./cx.cxreducer";
 
 
@@ -199,4 +201,22 @@ for (const rArgs of cxCxReducerArgs) {
     cxCxReducerSource += reducer.compileSource() + '\n\n';
 }
 Bun.write(cxCxReducerFile, cxCxReducerSource);
+console.log("_____\n");
+
+// Sparse (CCS) element-wise binary ops; only ops with op(0, 0) = 0
+const sparseBinopFile = targetDir + "sparse.binops.ts";
+console.log(`Generating sparse binary ops in ${sparseBinopFile}:`);
+const sparseBinopArgs: SparseBinopMetaFunctionArgs[] = [
+    { name: 'add', expression: 'x_i + y_i' },
+    { name: 'sub', expression: 'x_i - y_i' },
+    { name: 'mul', expression: 'x_i * y_i' },
+];
+
+let sparseBinopSource = "";
+for (const bArgs of sparseBinopArgs) {
+    const binop = new SparseBinopMetaFunction(bArgs);
+    console.log(`  _re_s_${binop.name}SS`);
+    sparseBinopSource += binop.compileSource() + '\n\n';
+}
+Bun.write(sparseBinopFile, sparseBinopSource);
 console.log("_____\n");

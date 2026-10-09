@@ -212,6 +212,46 @@ function sameEigenvalues(a: Plain, b: Plain): boolean {
     return true;
 }
 
+// ── Sparse helpers ──
+
+/** 2-D Poisson (5-point Laplacian) matrix on a k×k grid, as a numeric-2 SparseMatrix. */
+function poisson2d(N2: any, k: number) {
+    const rows: number[] = [], cols: number[] = [], vals: number[] = [];
+    const id = (i: number, j: number) => i * k + j;
+    for (let i = 0; i < k; i++) {
+        for (let j = 0; j < k; j++) {
+            const r = id(i, j);
+            rows.push(r); cols.push(r); vals.push(4);
+            if (i > 0) { rows.push(r); cols.push(id(i - 1, j)); vals.push(-1); }
+            if (i < k - 1) { rows.push(r); cols.push(id(i + 1, j)); vals.push(-1); }
+            if (j > 0) { rows.push(r); cols.push(id(i, j - 1)); vals.push(-1); }
+            if (j < k - 1) { rows.push(r); cols.push(id(i, j + 1)); vals.push(-1); }
+        }
+    }
+    return N2.SparseMatrix.fromTriplets(k * k, k * k, rows, cols, vals);
+}
+/** numeric.js CCS triple [colPtr, rowIdx, values] (same layout as SparseMatrix). */
+const ccs = (S: any) => [S.colPtr.slice(), S.rowIdx.slice(), S.values.slice()];
+/** math.js SparseMatrix with the same CCS data. */
+const mjSparse = (MJ: any, S: any) => new MJ.SparseMatrix({
+    values: S.values.slice(), index: S.rowIdx.slice(), ptr: S.colPtr.slice(), size: [S.nrows, S.ncols],
+});
+/** The single column of a numeric.js CCS result, as a dense array of length m. */
+function ccsColumn(S: any, m: number): number[] {
+    const out = new Array(m).fill(0);
+    for (let p = S[0][0]; p < S[0][1]; p++) out[S[1][p]] = S[2][p];
+    return out;
+}
+function colSums(ptr: number[], values: number[]): number[] {
+    const out: number[] = [];
+    for (let j = 0; j + 1 < ptr.length; j++) {
+        let s = 0;
+        for (let p = ptr[j]; p < ptr[j + 1]; p++) s += values[p];
+        out.push(s);
+    }
+    return out;
+}
+
 // ── Cases ──
 
 const vecLabel = (n: number) => `n=${n}`;
@@ -565,6 +605,54 @@ export function buildCases(libs: Libs): Case[] {
                 numeric: ([f, tol], nm) => nm.dopri(0, 10, [10, 5], f, tol, 100000).at(10),
             },
             check: (a, b) => close(a, b, 1e-6),
+        },
+
+        // Sparse matrices (2-D Poisson matrix on a k×k grid; stdlib has no sparse matrices)
+        {
+            suite: "Sparse", name: "solve(A, b), 2-D Poisson", sizes: [10, 30, 70], sizeLabel: (k) => `n=${k * k}`,
+            setup: (k, rng) => {
+                const A = poisson2d(N2, k), b = randVec(k * k, rng);
+                return { "numeric-2": [A, b], numeric: [ccs(A), b], mathjs: MJ ? [mjSparse(MJ, A), b] : null };
+            },
+            run: {
+                "numeric-2": ([A, b]) => N2.sparse.solve(A, b),
+                numeric: ([A, b], nm) => nm.ccsLUPSolve(nm.ccsLUP(A), b),
+                mathjs: ([A, b], m) => m.lusolve(m.slu(A, 0, 1), b),
+            },
+            plain: { mathjs: flatPlain },
+        },
+        {
+            suite: "Sparse", name: "A·x, 2-D Poisson", sizes: [30, 100, 300], sizeLabel: (k) => `n=${k * k}`,
+            setup: (k, rng) => {
+                const A = poisson2d(N2, k), x = randVec(k * k, rng);
+                // numeric.js has no sparse × dense vector: multiply by x as a one-column sparse matrix
+                const xc = [[0, k * k], Array.from({ length: k * k }, (_, i) => i), x];
+                return { "numeric-2": [A, x], numeric: [ccs(A), xc], mathjs: MJ ? [mjSparse(MJ, A), MJ.matrix(x)] : null };
+            },
+            run: {
+                "numeric-2": ([A, x]) => N2.sparse.dot(A, x),
+                numeric: ([A, xc], nm) => nm.ccsDot(A, xc),
+                mathjs: ([A, x], m) => m.multiply(A, x),
+            },
+            plain: { numeric: (out, k) => ({ re: ccsColumn(out, k * k), im: null }) },
+        },
+        {
+            suite: "Sparse", name: "A·A, 2-D Poisson", sizes: [10, 30, 70], sizeLabel: (k) => `n=${k * k}`,
+            setup: (k) => {
+                const A = poisson2d(N2, k);
+                return { "numeric-2": A, numeric: ccs(A), mathjs: MJ ? mjSparse(MJ, A) : null };
+            },
+            run: {
+                "numeric-2": (A) => N2.sparse.dot(A, A),
+                numeric: (A, nm) => nm.ccsDot(A, A),
+                mathjs: (A, m) => m.multiply(A, A),
+            },
+            // Compare a checksum of the product: the sums of each column
+            plain: {
+                "numeric-2": (S) => ({ re: colSums(S.colPtr, S.values), im: null }),
+                numeric: (S) => ({ re: colSums(S[0], S[2]), im: null }),
+                mathjs: (S) => ({ re: colSums(S._ptr, S._values), im: null }),
+            },
         },
 
         // Complex

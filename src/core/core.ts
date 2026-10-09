@@ -78,6 +78,11 @@ import {
     _cx_v_sum,
     _cx_v_prod,
 } from "./cx.cxreducers";
+import {
+    _re_s_addSS,
+    _re_s_subSS,
+    _re_s_mulSS,
+} from "./sparse.binops";
 
 export default class NumericCore {
     // Reducers
@@ -196,4 +201,8 @@ export default class NumericCore {
 
     static _cx_v_sum = _cx_v_sum;
     static _cx_v_prod = _cx_v_prod;
+
+    static _re_s_addSS = _re_s_addSS;
+    static _re_s_subSS = _re_s_subSS;
+    static _re_s_mulSS = _re_s_mulSS;
 };
