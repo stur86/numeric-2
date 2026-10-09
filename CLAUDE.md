@@ -20,7 +20,7 @@ The original numeric.js is at `../numeric` relative to this project. Its documen
   - `extra.reducers.ts` — Hand-written boolean reducers (any, all).
   - `cx.maps.ts` — Generated complex unary ops (neg, conj, abs, clone). Return `[number[], number[]]`.
   - `cx.binops.ts` — Generated complex binary ops with VV/VS/SV variants (add, sub, mul, div). Return `[number[], number[]]`.
-  - `cx.reducers.ts` — Generated complex reducers (norm2, norm2squared, norm1). Return `number`.
+  - `cx.reducers.ts` — Generated complex reducers (norm2, norm2squared, norm1, normInf). Return `number`.
   - `core.ts` — `NumericCore` static class aggregating all core functions (real + complex).
   - `utils.ts` — `UnaryMethod` and `BinaryMethod` dispatchers that resolve tensor type/dtype to core functions.
   - `dot.ts` — Low-level dot product implementations (dotVV, dotMV, dotVM, dotMMsmall, dotMMbig).
@@ -117,7 +117,7 @@ Each template is a `.tjs` file with `$PLACEHOLDER` tokens that the meta class fi
 | `generate.ts` binops section | `src/core/binops.ts` | `_re_v_addVV/VS/SV`, `_re_v_eqVV/VS/SV`, etc. |
 | `generate.ts` cx maps section | `src/core/cx.maps.ts` | `_cx_v_neg`, `_cx_v_conj`, `_cx_v_abs`, `_cx_v_clone` |
 | `generate.ts` cx binops section | `src/core/cx.binops.ts` | `_cx_v_addVV/VS/SV`, `_cx_v_mulVV/VS/SV`, etc. |
-| `generate.ts` cx reducers section | `src/core/cx.reducers.ts` | `_cx_v_norm2`, `_cx_v_norm2squared`, `_cx_v_norm1` |
+| `generate.ts` cx reducers section | `src/core/cx.reducers.ts` | `_cx_v_norm2`, `_cx_v_norm2squared`, `_cx_v_norm1`, `_cx_v_normInf` |
 
 Hand-written (not generated): `extra.reducers.ts` (`_bool_v_any`, `_bool_v_all`), `dot.ts`.
 

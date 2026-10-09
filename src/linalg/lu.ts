@@ -1,4 +1,5 @@
 import { clone } from "../utils";
+import { type MatrixLike, type VectorLike, toRawMatrix, toRawVector, assertSquare } from "./wrap";
 
 export type LUPResult = {
     LU: number[][];
@@ -13,11 +14,13 @@ export type LUPResult = {
  * and P is the pivot permutation array.
  *
  * @param A     A square matrix.
- * @param fast  If true, modifies A in-place. Default false (clones A).
+ * @param fast  If true, modifies A's data in-place. Default false (clones A).
  * @returns     {LU, P}
  */
-export function LU(A: number[][], fast: boolean = false): LUPResult {
-    const a = fast ? A : clone(A) as number[][];
+export function LU(A: MatrixLike, fast: boolean = false): LUPResult {
+    const rawA = toRawMatrix(A, "LU");
+    assertSquare(rawA, "LU");
+    const a = fast ? rawA : clone(rawA) as number[][];
     const n = a.length;
     const P = Array(n);
 
@@ -73,10 +76,14 @@ export function LU(A: number[][], fast: boolean = false): LUPResult {
  * @param b     The right-hand side vector.
  * @returns     The solution vector x.
  */
-export function LUsolve(lup: LUPResult, b: number[]): number[] {
+export function LUsolve(lup: LUPResult, b: VectorLike): number[] {
     const { LU: a, P } = lup;
     const n = a.length;
-    const x = b.slice();
+    const rawB = toRawVector(b, "LUsolve");
+    if (rawB.length !== n) {
+        throw new Error(`LUsolve: right-hand side has length ${rawB.length}, expected ${n}`);
+    }
+    const x = rawB.slice();
 
     // Apply permutation
     for (let i = 0; i < n; i++) {
@@ -118,6 +125,6 @@ export function LUsolve(lup: LUPResult, b: number[]): number[] {
  * @param b     The right-hand side vector.
  * @returns     The solution vector x.
  */
-export function solve(A: number[][], b: number[]): number[] {
+export function solve(A: MatrixLike, b: VectorLike): number[] {
     return LUsolve(LU(A), b);
 }

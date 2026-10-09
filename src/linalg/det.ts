@@ -1,4 +1,5 @@
 import { clone } from "../utils";
+import { type MatrixLike, toRawMatrix, assertSquare } from "./wrap";
 
 /**
  * Determinant of a square matrix via Gaussian elimination with partial pivoting.
@@ -6,9 +7,11 @@ import { clone } from "../utils";
  * @param x     A square matrix.
  * @returns     The determinant.
  */
-export function det(x: number[][]): number {
-    const n = x.length;
-    const A = clone(x) as number[][];
+export function det(x: MatrixLike): number {
+    const rawX = toRawMatrix(x, "det");
+    assertSquare(rawX, "det");
+    const n = rawX.length;
+    const A = clone(rawX) as number[][];
     let ret = 1;
 
     for (let j = 0; j < n; j++) {

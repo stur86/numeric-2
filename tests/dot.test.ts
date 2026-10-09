@@ -1,6 +1,6 @@
 import { describe, test, afterAll } from "bun:test";
 import { oracle, killOracle, assertClose, assertClose2D, assertScalarClose } from "./runner";
-import { linalg } from "../index";
+import { linalg, Matrix, Vector } from "../index";
 
 const SEED = 42;
 
@@ -65,5 +65,27 @@ describe("dot products vs NumPy", () => {
 
         const actual = linalg.dot(A, B) as number[][];
         assertClose2D(actual, expected, 1e-10, "dot MM: ");
+    });
+
+    test("dot with Vector/Matrix instances", async () => {
+        const vv = await oracle({ op: "dot", variant: "VV", seed: SEED, n: 50 });
+        assertScalarClose(
+            linalg.dot(new Vector(vv.inputs.x as number[]), new Vector(vv.inputs.y as number[])),
+            vv.expected as number, 1e-10, "dot VV: ");
+
+        const mv = await oracle({ op: "dot", variant: "MV", seed: SEED, m: 10, n: 8 });
+        assertClose(
+            linalg.dot(new Matrix(mv.inputs.A as number[][]), new Vector(mv.inputs.v as number[])),
+            mv.expected as number[], 1e-10, "dot MV: ");
+
+        const vm = await oracle({ op: "dot", variant: "VM", seed: SEED, m: 8, n: 10 });
+        assertClose(
+            linalg.dot(new Vector(vm.inputs.v as number[]), new Matrix(vm.inputs.A as number[][])),
+            vm.expected as number[], 1e-10, "dot VM: ");
+
+        const mm = await oracle({ op: "dot", variant: "MM", seed: SEED, m: 12, n: 15, p: 11 });
+        assertClose2D(
+            linalg.dot(new Matrix(mm.inputs.A as number[][]), new Matrix(mm.inputs.B as number[][])),
+            mm.expected as number[][], 1e-10, "dot MM: ");
     });
 });

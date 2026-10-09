@@ -160,6 +160,7 @@ const cxReducerArgs: CxVectorReducerMetaFunctionArgs[] = [
     { name: '_cx_v_norm2', reduceElement: 'x_re_i*x_re_i+x_im_i*x_im_i', reduceOperator: '+=', resultTransform: 'Math.sqrt(ans)' },
     { name: '_cx_v_norm2squared', reduceElement: 'x_re_i*x_re_i+x_im_i*x_im_i', reduceOperator: '+=' },
     { name: '_cx_v_norm1', reduceElement: 'Math.sqrt(x_re_i*x_re_i+x_im_i*x_im_i)', reduceOperator: '+=' },
+    { name: '_cx_v_normInf', reduceElement: 'Math.max(ans, Math.sqrt(x_re_i*x_re_i+x_im_i*x_im_i))', reduceOperator: '=', initElement: 'Math.sqrt(x_re_i*x_re_i+x_im_i*x_im_i)' },
 ];
 
 let cxReducerSource = "";

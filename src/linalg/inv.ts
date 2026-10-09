@@ -1,4 +1,5 @@
 import { clone } from "../utils";
+import { type MatrixLike, toRawMatrix, assertSquare } from "./wrap";
 
 /**
  * Matrix inverse via Gauss-Jordan elimination with partial pivoting.
@@ -6,9 +7,11 @@ import { clone } from "../utils";
  * @param x     A square matrix.
  * @returns     The inverse matrix.
  */
-export function inv(x: number[][]): number[][] {
-    const n = x.length;
-    const A = clone(x) as number[][];
+export function inv(x: MatrixLike): number[][] {
+    const rawX = toRawMatrix(x, "inv");
+    assertSquare(rawX, "inv");
+    const n = rawX.length;
+    const A = clone(rawX) as number[][];
 
     // Create identity matrix
     const I: number[][] = Array(n);

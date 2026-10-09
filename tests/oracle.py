@@ -217,6 +217,7 @@ CX_REDUCERS = {
     "cx_norm2": np.linalg.norm,
     "cx_norm2squared": lambda x: float(np.sum(np.abs(x)**2)),
     "cx_norm1": lambda x: float(np.sum(np.abs(x))),
+    "cx_normInf": lambda x: float(np.max(np.abs(x))),
 }
 
 
@@ -247,6 +248,11 @@ def handle_cx_binary(req: dict) -> dict:
     x_arr = rng.standard_normal(n) + 1j * rng.standard_normal(n)
     y_arr = rng.standard_normal(n) + 1j * rng.standard_normal(n)
     scalar = complex(rng.standard_normal(), rng.standard_normal())
+    # Optionally make one operand purely real (mixed real/complex VV)
+    if req.get("real_x"):
+        x_arr = x_arr.real + 0j
+    if req.get("real_y"):
+        y_arr = y_arr.real + 0j
 
     if op == "cx_div":
         # avoid division by zero

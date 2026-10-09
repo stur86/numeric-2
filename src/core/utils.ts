@@ -2,6 +2,24 @@ import type { TensorBase } from "../base";
 import Vector from "../vector";
 import NumericCore from ".";
 
+/** The imaginary part of a tensor, or a zero array if it is real. */
+function imagOrZeros(t: TensorBase): number[] {
+    if (t.imag !== null) return t.imag as number[];
+    const n = t.shape[0];
+    const z = Array(n);
+    for (let i = n - 1; i >= 0; i--) z[i] = 0;
+    return z;
+}
+
+function resolveKernel(full_name: string, name: string, dtype: string): Function {
+    const method = NumericCore[full_name as keyof typeof NumericCore];
+    if (typeof method !== "function") {
+        const kind = dtype === "cx" ? "complex" : "real";
+        throw new Error(`Operation ${name} is not supported for ${kind} tensors`);
+    }
+    return method;
+}
+
 export class UnaryMethod {
     dtype: string;
     optype: string;
@@ -36,8 +54,7 @@ export class UnaryMethod {
     }
 
     invoke(): any {
-        const method = NumericCore[this.key] as Function;
-        return method(...this.args);
+        return resolveKernel(this.full_name, this.name, this.dtype)(...this.args);
     }
 }
 
@@ -70,6 +87,15 @@ export class BinaryMethod {
         }
 
         if (!leftIsScalar && !rightIsScalar) {
+            const other = (right as TensorBase);
+            if (!(other instanceof Vector)) {
+                throw new Error(`Method ${name} not supported for ${other}`);
+            }
+            if (other.shape[0] !== tensor.shape[0]) {
+                throw new Error(`Binary op ${name}: length mismatch (${tensor.shape[0]} vs ${other.shape[0]})`);
+            }
+            // Mixed real/complex operands are computed in complex mode
+            if (other.is_complex) this.dtype = "cx";
             this.variant = "VV";
         } else if (rightIsScalar) {
             this.variant = "VS";
@@ -89,7 +115,7 @@ export class BinaryMethod {
             } else {
                 this.args.push((left as TensorBase).real);
                 if (this.dtype == "cx") {
-                    this.args.push((left as TensorBase).imag);
+                    this.args.push(imagOrZeros(left as TensorBase));
                 }
             }
             if (rightIsScalar) {
@@ -100,7 +126,7 @@ export class BinaryMethod {
             } else {
                 this.args.push((right as TensorBase).real);
                 if (this.dtype == "cx") {
-                    this.args.push((right as TensorBase).imag);
+                    this.args.push(imagOrZeros(right as TensorBase));
                 }
             }
             this.args.push(tensor.shape[0]);
@@ -112,7 +138,6 @@ export class BinaryMethod {
     }
 
     invoke(): any {
-        const method = NumericCore[this.key] as Function;
-        return method(...this.args);
+        return resolveKernel(this.full_name, this.name, this.dtype)(...this.args);
     }
 }

@@ -1,5 +1,6 @@
 import { dotVV, dotMV, dotVM, dotMMsmall, dotMMbig } from "../core/dot";
 import { dim } from "../utils";
+import { type MatrixLike, type VectorLike, toRaw } from "./wrap";
 
 /**
  * General dot product / matrix multiplication.
@@ -11,13 +12,18 @@ import { dim } from "../utils";
  * - 2D × 2D → 2D (matrix multiplication)
  * - scalar × any / any × scalar → element-wise scaling
  *
- * @param x     A scalar, vector, or matrix.
- * @param y     A scalar, vector, or matrix.
+ * @param x     A scalar, vector, or matrix (real only).
+ * @param y     A scalar, vector, or matrix (real only).
  * @returns     The dot product result.
  */
-export function dot(x: any, y: any): any {
+export function dot(a: number | VectorLike | MatrixLike, b: number | VectorLike | MatrixLike): any {
+    const x: any = toRaw(a, "dot");
+    const y: any = toRaw(b, "dot");
     const dx = dim(x);
     const dy = dim(y);
+    if (dx.length > 0 && dy.length > 0 && dx[dx.length - 1] !== dy[0]) {
+        throw new Error(`dot: shape mismatch, ${dx.join("x")} and ${dy.join("x")}`);
+    }
 
     switch (dx.length * 1000 + dy.length) {
         case 2002: // matrix × matrix

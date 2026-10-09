@@ -64,6 +64,7 @@ import {
     _cx_v_norm2,
     _cx_v_norm2squared,
     _cx_v_norm1,
+    _cx_v_normInf,
 } from "./cx.reducers";
 
 export default class NumericCore {
@@ -164,4 +165,5 @@ export default class NumericCore {
     static _cx_v_norm2 = _cx_v_norm2;
     static _cx_v_norm2squared = _cx_v_norm2squared;
     static _cx_v_norm1 = _cx_v_norm1;
+    static _cx_v_normInf = _cx_v_normInf;
 };
