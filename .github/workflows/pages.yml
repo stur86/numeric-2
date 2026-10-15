@@ -33,8 +33,23 @@ env:
   SITE_VERSION: ${{ github.ref_type == 'tag' && github.ref_name || '' }}
 
 jobs:
+  # A release tag must be "v" + the version in package.json (e.g. v1.2.3);
+  # every other job waits for this check, so a mismatched tag deploys nothing.
+  version:
+    name: Check release version
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: ${{ env.BUN_VERSION }}
+      - name: Tag matches package.json
+        if: github.ref_type == 'tag'
+        run: bun run scripts/check-version.ts "$GITHUB_REF_NAME"
+
   docs:
     name: API reference
+    needs: version
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -65,18 +80,23 @@ jobs:
 
   library:
     name: Library bundles
+    needs: version
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: oven-sh/setup-bun@v2
         with:
           bun-version: ${{ env.BUN_VERSION }}
+      # package.json without its version: a release bump alone must not invalidate the cache
+      - name: Hash package.json (without version)
+        id: pkg
+        run: echo "hash=$(jq -S 'del(.version)' package.json | sha256sum | cut -c1-16)" >> "$GITHUB_OUTPUT"
       - name: Cache built bundles
         id: cache
         uses: actions/cache@v4
         with:
           path: dist
-          key: dist-${{ hashFiles('index.ts', 'src/**/*.ts', '!src/**/*.test.ts', 'package.json', 'bun.lockb') }}
+          key: dist-${{ steps.pkg.outputs.hash }}-${{ hashFiles('index.ts', 'src/**/*.ts', '!src/**/*.test.ts', 'bun.lockb') }}
       - name: Cache dependencies
         if: steps.cache.outputs.cache-hit != 'true'
         uses: actions/cache@v4
@@ -95,6 +115,7 @@ jobs:
 
   benchmarks:
     name: Benchmarks
+    needs: version
     runs-on: ubuntu-latest
     timeout-minutes: 60
     steps:
@@ -114,12 +135,16 @@ jobs:
       # Results are not committed: they are measured here and cached, and only
       # re-measured when the library or the benchmark suite changes.
       # (They depend on those, not on the report page.)
+      # package.json without its version: a release bump alone must not invalidate the cache
+      - name: Hash package.json (without version)
+        id: pkg
+        run: echo "hash=$(jq -S 'del(.version)' package.json | sha256sum | cut -c1-16)" >> "$GITHUB_OUTPUT"
       - name: Cache benchmark results
         id: cache
         uses: actions/cache@v4
         with:
           path: benchmarks/results
-          key: bench-results-${{ hashFiles('index.ts', 'src/**/*.ts', '!src/**/*.test.ts', 'benchmarks/*.ts', 'package.json', 'bun.lockb') }}
+          key: bench-results-${{ steps.pkg.outputs.hash }}-${{ hashFiles('index.ts', 'src/**/*.ts', '!src/**/*.test.ts', 'benchmarks/*.ts', 'bun.lockb') }}
       - name: Run benchmarks (Bun)
         if: steps.cache.outputs.cache-hit != 'true'
         run: bun run bench:bun
