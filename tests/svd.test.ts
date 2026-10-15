@@ -51,3 +51,27 @@ describe("svd vs NumPy", () => {
         });
     }
 });
+
+describe("svd: rank-deficient matrices (issue #4)", () => {
+    const cases: [number[][], number[]][] = [
+        [[[1, 1], [0, 0]], [Math.SQRT2, 0]],
+        [[[0, 0], [1, 1]], [Math.SQRT2, 0]],
+        [[[1, 2], [2, 4]], [5, 0]],
+        [[[1, 2, 3], [2, 4, 6], [3, 6, 9]], [14, 0, 0]],
+        [[[1, 1], [0, 0], [0, 0]], [Math.SQRT2, 0]],
+        [[[1, 1], [0, 1e-300]], [Math.SQRT2, 0]],
+        [[[1, 0, 1], [1, 0, 1]], [2, 0]],
+        [[[0, 0], [0, 0]], [0, 0]],
+    ];
+    for (const [A, S] of cases) {
+        test(JSON.stringify(A), () => {
+            check(A, S, JSON.stringify(A));
+            // All columns of U and V stay orthonormal, not just those of nonzero singular values
+            const { U, V } = linalg.svd(A);
+            const u = U.real as number[][], v = V.real as number[][];
+            const k = u[0].length;
+            assertClose2D(linalg.dotMMsmall(transpose(u), u), identity(k), 1e-11, "UᵀU: ");
+            assertClose2D(linalg.dotMMsmall(transpose(v), v), identity(k), 1e-11, "VᵀV: ");
+        });
+    }
+});

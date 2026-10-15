@@ -12,7 +12,7 @@ import {
     cxScalarMul, cxScalarSub, cxScalarAdd, cxScalarAbs, cxScalarDiv,
     cxGetCol, cxSetCol,
 } from "./cxmat";
-import { epsilon } from "./house";
+import { negligible } from "./house";
 
 /**
  * Complex Householder reflection.
@@ -231,6 +231,10 @@ export function cxQR(H: CxMatrix, maxiter: number = 10000): CxSchurResult {
         return { T, Q };
     }
 
+    let normH = 0;
+    for (let i = 0; i < m; i++)
+        for (let j = 0; j < m; j++) normH = Math.max(normH, Math.hypot(Hre[i][j], Him[i][j]));
+
     for (let iter = 0; iter < maxiter; iter++) {
         // Check for deflation
         for (let j = 0; j < m - 1; j++) {
@@ -239,7 +243,7 @@ export function cxQR(H: CxMatrix, maxiter: number = 10000): CxSchurResult {
             const subAbs = Math.sqrt(subRe * subRe + subIm * subIm);
             const diagAbs = Math.sqrt(Hre[j][j] ** 2 + Him[j][j] ** 2) +
                             Math.sqrt(Hre[j + 1][j + 1] ** 2 + Him[j + 1][j + 1] ** 2);
-            if (subAbs < epsilon * diagAbs) {
+            if (negligible(subAbs, diagAbs, normH)) {
                 // Deflate: set subdiagonal to zero and recurse
                 Hre[j + 1][j] = 0;
                 Him[j + 1][j] = 0;

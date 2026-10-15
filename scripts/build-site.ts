@@ -26,7 +26,7 @@ async function run(cmd: string[], label: string) {
 }
 
 if (!assembleOnly) {
-    await run(["bunx", "typedoc"], "API reference (TypeDoc)");
+    await run(["bun", "run", "docs:build"], "API reference (TypeDoc)");
     await run(["bun", "run", "build"], "library bundles");
     await run(["bun", "run", "bench:web"], "benchmark report");
 }

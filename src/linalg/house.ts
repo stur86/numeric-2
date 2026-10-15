@@ -101,6 +101,23 @@ export function toUpperHessenbergRaw(me: number[][]): RawHessenbergResult {
     return { H: A, Q };
 }
 
+/** Largest absolute entry of a real matrix. */
+function maxAbs(A: number[][]): number {
+    let r = 0;
+    for (const row of A) for (const x of row) if (Math.abs(x) > r) r = Math.abs(x);
+    return r;
+}
+
+/**
+ * Deflation test for a subdiagonal entry of magnitude `sub` next to diagonal
+ * entries of total magnitude `diag`: negligible if below ε·diag, or, when both
+ * diagonal entries are zero, below ε·‖H‖. (numeric.js only used a strict
+ * `< ε·diag`, which never deflates a zero subdiagonal between zero diagonals.)
+ */
+export function negligible(sub: number, diag: number, normH: number): boolean {
+    return sub <= epsilon * (diag > 0 ? diag : normH);
+}
+
 type RawQRFrancisResult = {
     Q: number[][];
     B: number[][];
@@ -116,6 +133,7 @@ export function QRFrancisRaw(H: number[][], maxiter: number = 10000): RawQRFranc
     H = clone(H) as number[][];
     const s = dim(H);
     const m = s[0] as number;
+    const normH = maxAbs(H);
     let x: number[], v: number[];
     let a: number, b: number, c: number, d: number, det: number, tr: number;
     let Hloc: number[][];
@@ -132,7 +150,7 @@ export function QRFrancisRaw(H: number[][], maxiter: number = 10000): RawQRFranc
     for (let iter = 0; iter < maxiter; iter++) {
         // Check for deflation
         for (j = 0; j < m - 1; j++) {
-            if (Math.abs(H[j + 1][j]) < epsilon * (Math.abs(H[j][j]) + Math.abs(H[j + 1][j + 1]))) {
+            if (negligible(Math.abs(H[j + 1][j]), Math.abs(H[j][j]) + Math.abs(H[j + 1][j + 1]), normH)) {
                 const QH1 = QRFrancisRaw(getBlock(H, 0, 0, j + 1, j + 1), maxiter);
                 const QH2 = QRFrancisRaw(getBlock(H, j + 1, j + 1, m, m), maxiter);
 
@@ -217,7 +235,7 @@ export function QRFrancisRaw(H: number[][], maxiter: number = 10000): RawQRFranc
         for (j = 0; j < m - 2; j++) {
             // Check for deflation during chase
             for (k = j; k <= j + 1; k++) {
-                if (Math.abs(H[k + 1][k]) < epsilon * (Math.abs(H[k][k]) + Math.abs(H[k + 1][k + 1]))) {
+                if (negligible(Math.abs(H[k + 1][k]), Math.abs(H[k][k]) + Math.abs(H[k + 1][k + 1]), normH)) {
                     const QH1 = QRFrancisRaw(getBlock(H, 0, 0, k + 1, k + 1), maxiter);
                     const QH2 = QRFrancisRaw(getBlock(H, k + 1, k + 1, m, m), maxiter);
 

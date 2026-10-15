@@ -392,6 +392,58 @@ def handle_svd(req: dict) -> dict:
     return {"inputs": {"A": A.tolist()}, "expected": np.linalg.svd(A, compute_uv=False).tolist()}
 
 
+def _hermitian(rng, n: int, cx: bool, kind: str = "random"):
+    """Random real symmetric / complex Hermitian matrix. kind="degenerate" gives
+    eigenvalues with multiplicities (Q·diag(λ)·Qᴴ, Q a random unitary)."""
+    X = rng.standard_normal((n, n))
+    if cx:
+        X = X + 1j * rng.standard_normal((n, n))
+    if kind == "degenerate":
+        Q, _ = np.linalg.qr(X)
+        lam = np.repeat(np.arange(1.0, n + 1), 3)[:n]  # 1, 1, 1, 2, 2, 2, ...
+        return (Q * lam) @ Q.conj().T
+    return (X + X.conj().T) / 2
+
+
+def handle_eigh(req: dict) -> dict:
+    """eigh / eigh_generalized: lowest k eigenvalues (NumPy / SciPy)."""
+    import scipy.linalg
+    rng = np.random.default_rng(req["seed"])
+    n, cx = req["n"], req.get("complex", False)
+    k = req.get("k", n)
+    A = _hermitian(rng, n, cx, req.get("kind", "random"))
+    inputs = {"A": cx_to_parts(A + 0j)}
+    if req["op"] == "eigh":
+        w = np.linalg.eigvalsh(A)[:k]
+    else:
+        B = rng.standard_normal((n, n)) + (1j * rng.standard_normal((n, n)) if cx else 0)
+        S = B.conj().T @ B / n + 0.5 * np.eye(n)
+        inputs["S"] = cx_to_parts(S + 0j)
+        w = scipy.linalg.eigh(A, S, eigvals_only=True, subset_by_index=[0, k - 1])
+    return {"inputs": inputs, "expected": w.tolist()}
+
+
+def handle_eigh_tridiagonal(req: dict) -> dict:
+    """Symmetric tridiagonal (random, Wilkinson W+ or split into equal blocks): lowest k eigenvalues."""
+    import scipy.linalg
+    rng = np.random.default_rng(req["seed"])
+    n, kind = req["n"], req.get("kind", "random")
+    k = req.get("k", n)
+    if kind == "wilkinson":
+        d = np.abs(np.arange(n) - (n - 1) / 2)
+        e = np.ones(n - 1)
+    elif kind == "split":
+        # Identical blocks separated by zeros: every eigenvalue is repeated
+        m = n // 3
+        db, eb = rng.standard_normal(m), rng.standard_normal(m - 1)
+        d = np.tile(db, 3)
+        e = np.concatenate([eb, [0.0], eb, [0.0], eb])
+    else:
+        d, e = rng.standard_normal(n), rng.standard_normal(n - 1)
+    w = scipy.linalg.eigh_tridiagonal(d, e, eigvals_only=True, select="i", select_range=(0, k - 1))
+    return {"inputs": {"d": d.tolist(), "e": e.tolist()}, "expected": w.tolist()}
+
+
 def handle_fft(req: dict) -> dict:
     """fft / ifft of a random signal (real if req["real"])."""
     rng = np.random.default_rng(req["seed"])
@@ -697,6 +749,10 @@ def process(req: dict) -> dict:
         return handle_cx_dot(req)
     elif op == "svd":
         return handle_svd(req)
+    elif op in ("eigh", "eigh_generalized"):
+        return handle_eigh(req)
+    elif op == "eigh_tridiagonal":
+        return handle_eigh_tridiagonal(req)
     elif op in ("fft", "ifft"):
         return handle_fft(req)
     elif op == "lp":

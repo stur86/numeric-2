@@ -701,7 +701,11 @@ function renderAll() {
     renderTable();
 }
 
+/** Site version (release tag), set at build time by build.ts. */
+declare const __SITE_VERSION__: string;
+
 async function boot() {
+    $("site-version").textContent = `numeric-2 ${__SITE_VERSION__}`;
     $("browser-libs").textContent = browserNumeric.error === null
         ? `${browserName()} · all four libraries available`
         : `${browserName()} · numeric.js unavailable; numeric-2, math.js and stdlib can run`;

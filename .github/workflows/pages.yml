@@ -1,14 +1,19 @@
 # Build the project website and publish it with GitHub Pages
 # (repository settings: Pages → Source: GitHub Actions).
 #
+# Runs when a release is published, so the site documents and benchmarks the
+# released code rather than whatever is on main; it builds from the release's
+# tag. A manual run (workflow_dispatch) builds the chosen branch or tag, e.g.
+# to redeploy the latest release.
+#
 # Each part is built by its own job and cached on a hash of its inputs, so a
 # merge that only touches the front page re-uses the docs, bundles and
 # benchmark results. The site job then assembles everything and deploys it.
 name: Website
 
 on:
-  push:
-    branches: [main]
+  release:
+    types: [published]
   workflow_dispatch:
 
 permissions:
@@ -23,6 +28,9 @@ concurrency:
 
 env:
   BUN_VERSION: 1.4.2
+  # Version shown on the docs and benchmark pages: the release tag (a manual
+  # run on a branch leaves it empty, and scripts/version.ts uses dev-<sha>).
+  SITE_VERSION: ${{ github.ref_type == 'tag' && github.ref_name || '' }}
 
 jobs:
   docs:
@@ -38,7 +46,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: build/docs
-          key: docs-${{ hashFiles('index.ts', 'src/**/*.ts', '!src/**/*.test.ts', 'typedoc.json', 'package.json', 'bun.lockb') }}
+          key: docs-${{ env.SITE_VERSION || github.sha }}-${{ hashFiles('index.ts', 'src/**/*.ts', '!src/**/*.test.ts', 'typedoc.json', 'scripts/build-docs.ts', 'scripts/version.ts', 'package.json', 'bun.lockb') }}
       - name: Cache dependencies
         if: steps.cache.outputs.cache-hit != 'true'
         uses: actions/cache@v4
