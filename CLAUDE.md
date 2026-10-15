@@ -8,7 +8,8 @@ The original numeric.js is at `../numeric` relative to this project. Its documen
 
 ## Project Structure
 
-- `index.ts` — Public entry point. Exports `Vector`, `Matrix`, `SparseMatrix`, `linalg`, `sparse`, `optimize`, `interpolate`, `ode`, `complex`/`isComplex` (+ `Complex`/`Scalar` types), and utility functions.
+- `index.ts` — Public entry point. Exports `Vector`, `Matrix`, `SparseMatrix`, `linalg`, `sparse`, `optimize`, `interpolate`, `ode`, `complex`/`isComplex` (+ `Complex`/`Scalar` types), `version`, and utility functions.
+- `src/version.ts` — `version`: the library version, a named import of `version` from `package.json` (the bundler inlines just that string; a default import would inline all of package.json). `src/version.test.ts` checks it matches.
 - `src/complex.ts` — `Complex = {re, im}` scalar type, `Scalar = number | Complex`, `complex()`, `isComplex()`.
 - `src/base.ts` — `TensorBase` class: base for all tensors, stores `_re`, `_im`, `_shape`.
 - `src/vector.ts` — `Vector` class (1D tensor): `clone`, `promoteToComplex` (in place), `get`/`set`, `getBlock`/`setBlock`, `Vector.zeros`.
@@ -279,10 +280,12 @@ Compares numeric-2 with numeric.js 1.2.6, math.js and stdlib (standalone `@stdli
 
 - `site/index.html` — Front page (standalone HTML). Runs a live example against the site's own `dist/numeric-2.min.js` and reads headline figures from `benchmarks/results.json`; keep its example code and feature list in sync with the API.
 - `scripts/version.ts` — `siteVersion()`: the version the site describes (`$SITE_VERSION`, set to the release tag by the Pages workflow; else the tag on HEAD; else `dev-<sha>`). Shown in the docs title and the benchmark page header.
+- `scripts/check-version.ts <tag>` — Fails unless the tag is `v` + the (semver) `version` in `package.json`; the Pages workflow's first job, which every build job waits on.
 - `scripts/build-docs.ts` (`bun run docs:build`) — Runs TypeDoc (`typedoc.json`) titled `numeric-2 <version>`, then fixes the depth of the toolbar/menu "Home" links (`navigationLinks`, written verbatim by TypeDoc) so they reach the front page from every page.
 - `scripts/build-site.ts` (`bun run site:build`) — Builds the API reference (`docs:build` → `build/docs`), the library bundles (`dist/`) and the benchmark report (`benchmarks/web/dist`, from the saved `benchmarks/results/*.json`), then assembles `build/site` with `docs/`, `benchmarks/` and `dist/` under the front page. `--assemble-only` skips the builds. `bun run site:serve` previews `build/site`.
 - `.github/workflows/tests.yml` — On pull requests to `main` (and pushes to it): type-check, check that `src/core` matches `meta/generate.ts` output, set up the Python oracle with uv, and run `bun test`. Its `Tests` check is required by branch protection on `main` (changes land only through pull requests).
-- `.github/workflows/pages.yml` — When a GitHub release is published (and on manual dispatch), building from the release tag: separate jobs build the docs, the bundles and the benchmarks (re-running both runtimes only when the library or suite changed), each cached on a hash of its inputs; a final job assembles the site and deploys it with GitHub Pages' actions (Pages source: GitHub Actions).
+- `.github/workflows/release.yml` — Manual (workflow_dispatch, on `main` only): reads `version` from `package.json`, checks it (`check-version.ts`) and that the tag `v<version>` doesn't exist yet, creates the tag and GitHub release (`gh release create`, generated notes, pre-release if the version has a suffix), then dispatches `pages.yml` on the tag. The dispatch is needed because releases created with `GITHUB_TOKEN` don't trigger other workflows. Intended with a tag ruleset on `v*` that only GitHub Actions bypasses.
+- `.github/workflows/pages.yml` — Dispatched on the release tag by `release.yml` (also runs when a release is published another way, and on manual dispatch): a version job checks the tag against `package.json` (on tag refs), then separate jobs build the docs, the bundles and the benchmarks (re-running both runtimes only when the library or suite changed), each cached on a hash of its inputs (`package.json` hashed without its `version`, so a release bump alone does not re-run the benchmarks); a final job assembles the site and deploys it with GitHub Pages' actions (Pages source: GitHub Actions).
 
 ## Building
 
