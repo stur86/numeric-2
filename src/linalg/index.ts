@@ -35,6 +35,12 @@ import { sum, prod, sup, inf, any, all } from "./reduce";
 export { sqrt, exp, log, sin, cos, tan, asin, acos, atan, neg, ceil, floor, round, conj, abs, isNaN, isFinite, reciprocal, not, bnot };
 export { sum, prod, sup, inf, any, all };
 
+import { eigh, eighTridiagonal, eighGeneralized } from "./eigh";
+import type { EighResult } from "./eigh";
+
+export { eigh, eighTridiagonal, eighGeneralized };
+export type { EighResult };
+
 import { svd } from "./svd";
 import type { SVDResult } from "./svd";
 
