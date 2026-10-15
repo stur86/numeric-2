@@ -217,8 +217,12 @@ function svdTall(A: number[][], itmax: number): { u: number[][]; q: number[]; v:
                 }
                 z = pythag(f, h);
                 q[i - 1] = z;
-                c = f / z;
-                s = h / z;
+                // The rotation is arbitrary when (f, h) = 0: keep the previous one
+                // (as in the reference implementations) instead of dividing by zero.
+                if (z !== 0) {
+                    c = f / z;
+                    s = h / z;
+                }
                 f = c * g + s * y;
                 x = -s * g + c * y;
                 for (j = 0; j < m; j++) {

@@ -3,21 +3,19 @@
  * Ported from numeric.js: Householder → QR → eigenvector extraction.
  */
 
-import { transpose } from "../utils";
+import { rep, transpose } from "../utils";
 import { dotMMsmall } from "../core/dot";
 import Vector from "../vector";
 import Matrix from "../matrix";
 import { type MatrixLike, toRawMatrix, toRawCxMatrix } from "./wrap";
-import { toUpperHessenbergRaw, QRFrancisRaw } from "./house";
+import { toUpperHessenbergRaw, QRFrancisRaw, epsilon } from "./house";
 import { cxToUpperHessenberg, cxQR } from "./cxhouse";
 import {
     type CxMatrix,
     cxDotMM, cxTranspose, cxTransjugate,
     cxGetRows, cxSetRows, cxGetRow, cxSetRow,
-    cxGet, cxSet, cxGetBlock1D,
-    cxDotVV, cxVectorNorm2, cxVectorDivScalar,
+    cxVectorNorm2, cxVectorDivScalar,
     cxGetDiag, cxIdentity,
-    cxScalarDiv, cxScalarSub, cxScalarNeg,
 } from "./cxmat";
 
 export type EigResult = {
@@ -29,31 +27,75 @@ export type EigResult = {
  * Back-substitution for eigenvectors from a (quasi-)triangular Schur form.
  * Shared by both the real and complex eig paths.
  *
+ * Row j of E holds the eigenvector of R for the eigenvalue R[j][j], solving
+ * (R[k][k] − R[j][j]) E[j][k] = −Σ_{l=k+1..j} R[k][l] E[j][l] upwards from
+ * E[j][j] = 1. When the two eigenvalues are (numerically) equal, the
+ * denominator is replaced by a small perturbation, as in LAPACK's trevc: for a
+ * diagonalizable block the numerator vanishes and the vectors stay independent;
+ * for a defective block the result is (numerically) parallel to the earlier
+ * eigenvector, which is the only one there is. Rows are rescaled on the way to
+ * avoid overflow.
+ *
  * @param Q   Unitary transformation matrix (CxMatrix)
  * @param R   Upper triangular Schur form (CxMatrix)
  * @param n   Matrix dimension
  */
 function eigBackSubstitute(Q: CxMatrix, R: CxMatrix, n: number): EigResult {
     const E: CxMatrix = cxIdentity(n);
+    const Rre = R[0], Rim = R[1];
+    const Ere = E[0];
+    const Eim = Rim !== null ? (E[1] = rep([n, n], 0) as number[][]) : null;
 
-    for (let jj = 0; jj < n; jj++) {
-        if (jj > 0) {
-            for (let kk = jj - 1; kk >= 0; kk--) {
-                const Rk = cxGet(R, kk, kk);
-                const Rj = cxGet(R, jj, jj);
+    let normR = 0;
+    for (let i = 0; i < n; i++) {
+        for (let j = i; j < n; j++) {
+            const a = Math.abs(Rre[i][j]) + (Rim !== null ? Math.abs(Rim[i][j]) : 0);
+            if (a > normR) normR = a;
+        }
+    }
+    const smin = Math.max(epsilon * normR, Number.MIN_VALUE / epsilon);
+    const big = 1e150;
 
-                // Check if eigenvalues are distinct
-                if (Rk[0] !== Rj[0] || Rk[1] !== Rj[1]) {
-                    const xv = cxGetBlock1D(cxGetRow(R, kk), kk, jj - 1);
-                    const yv = cxGetBlock1D(cxGetRow(E, jj), kk, jj - 1);
-                    const Rkj = cxGet(R, kk, jj);
-                    const xDotY = cxDotVV(xv, yv);
-                    const num = cxScalarSub(cxScalarNeg(Rkj), xDotY);
-                    const den = cxScalarSub(Rk, Rj);
-                    cxSet(E, jj, kk, cxScalarDiv(num, den));
+    for (let jj = 1; jj < n; jj++) {
+        const ljRe = Rre[jj][jj], ljIm = Rim !== null ? Rim[jj][jj] : 0;
+        const eRe = Ere[jj], eIm = Eim !== null ? Eim[jj] : null;
+        for (let kk = jj - 1; kk >= 0; kk--) {
+            const rRe = Rre[kk], rIm = Rim !== null ? Rim[kk] : null;
+            // num = −Σ_{l=kk+1..jj} R[kk][l] E[jj][l]
+            let numRe = 0, numIm = 0;
+            for (let l = kk + 1; l <= jj; l++) {
+                if (rIm !== null && eIm !== null) {
+                    numRe -= rRe[l] * eRe[l] - rIm[l] * eIm[l];
+                    numIm -= rRe[l] * eIm[l] + rIm[l] * eRe[l];
                 } else {
-                    cxSetRow(E, jj, cxGetRow(E, kk));
-                    break;
+                    numRe -= rRe[l] * eRe[l];
+                }
+            }
+            let denRe = rRe[kk] - ljRe, denIm = (rIm !== null ? rIm[kk] : 0) - ljIm;
+            if (Math.abs(denRe) + Math.abs(denIm) < smin) {
+                denRe = smin;
+                denIm = 0;
+            }
+            // Smith's division: den may be tiny enough for |den|² to underflow
+            let xRe: number, xIm: number;
+            if (Math.abs(denRe) >= Math.abs(denIm)) {
+                const r = denIm / denRe, d = denRe + denIm * r;
+                xRe = (numRe + numIm * r) / d;
+                xIm = (numIm - numRe * r) / d;
+            } else {
+                const r = denRe / denIm, d = denRe * r + denIm;
+                xRe = (numRe * r + numIm) / d;
+                xIm = (numIm * r - numRe) / d;
+            }
+            eRe[kk] = xRe;
+            if (eIm !== null) eIm[kk] = xIm;
+
+            const mag = Math.abs(xRe) + Math.abs(xIm);
+            if (mag > big) {
+                const scale = 1 / mag;
+                for (let l = kk; l <= jj; l++) {
+                    eRe[l] *= scale;
+                    if (eIm !== null) eIm[l] *= scale;
                 }
             }
         }

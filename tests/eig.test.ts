@@ -11,6 +11,7 @@
 import { describe, test, expect, afterAll } from "bun:test";
 import { oracle, killOracle, assertScalarClose } from "./runner";
 import { eig } from "../src/linalg/eig";
+import { det } from "../src/linalg/det";
 import Matrix from "../src/matrix";
 import Vector from "../src/vector";
 import { cxDotMM, type CxMatrix } from "../src/linalg/cxmat";
@@ -268,5 +269,52 @@ describe("eig: edge cases", () => {
         const sorted = sortEigenvalues(lambdaRe, lambdaIm);
         expect(Math.abs(sorted.re[0])).toBeLessThan(1e-10);
         expect(Math.abs(sorted.re[1])).toBeLessThan(1e-10);
+    });
+});
+
+describe("eig: repeated eigenvalues (issue #3)", () => {
+    // Columns of E are unit vectors, so |det E| ≤ 1 and is ~0 iff they are dependent.
+    function checkIndependent(A: number[][] | Matrix, minDet: number) {
+        const result = eig(A);
+        const E = toCx(result.E);
+        const Acx: CxMatrix = A instanceof Matrix ? toCx(A) : [A, null];
+        const D = cxDiagMatrix(result.lambda.real as number[], result.lambda.imag as number[] | null);
+        expect(maxRelError(cxDotMM(Acx, E), cxDotMM(E, D))).toBeLessThan(1e-10);
+        const d = det(result.E);
+        const absDet = typeof d === "number" ? Math.abs(d) : Math.hypot(d.re, d.im);
+        expect(absDet).toBeGreaterThan(minDet);
+    }
+
+    test("2×2 identity", () => checkIndependent([[1, 0], [0, 1]], 0.99));
+    test("zero matrix", () => checkIndependent([[0, 0], [0, 0]], 0.99));
+    test("diag(1, 1, 2)", () => checkIndependent([[1, 0, 0], [0, 1, 0], [0, 0, 2]], 0.99));
+    test("two identical decoupled blocks", () => {
+        checkIndependent([[1, 0.5, 0, 0], [0.5, 2, 0, 0], [0, 0, 1, 0.5], [0, 0, 0.5, 2]], 0.99);
+    });
+    test("[[2,1,1],[1,2,1],[1,1,2]]", () => checkIndependent([[2, 1, 1], [1, 2, 1], [1, 1, 2]], 0.1));
+    test("symmetric with degenerate eigenvalues, rotated", () => {
+        // A = H diag(1, 1, 2, 2, 3) H with H a Householder reflection
+        const v = [1, -2, 0.5, 3, -1];
+        const vv = v.reduce((s, x) => s + x * x, 0);
+        const H = v.map((vi, i) => v.map((vj, j) => (i === j ? 1 : 0) - 2 * vi * vj / vv));
+        const d = [1, 1, 2, 2, 3];
+        const A = H.map((_, i) => H.map((_, j) => H[i].reduce((s, h, k) => s + h * d[k] * H[k][j], 0)));
+        checkIndependent(A, 0.1);
+    });
+    test("complex, diagonalizable with a repeated eigenvalue", () => {
+        const A = new Matrix(
+            [[1, 0, 1], [0, 1, 1], [0, 0, 2]],
+            [[1, 0, 0], [0, 1, 0], [0, 0, 0]],
+        );
+        checkIndependent(A, 0.1);
+    });
+    test("defective Jordan blocks give finite eigenvectors", () => {
+        for (const A of [[[1, 1], [0, 1]], [[2, 1, 0, 0], [0, 2, 1, 0], [0, 0, 2, 1], [0, 0, 0, 2]]]) {
+            const result = eig(A);
+            const E = toCx(result.E);
+            for (const row of E[0]) for (const x of row) expect(Number.isFinite(x)).toBe(true);
+            const D = cxDiagMatrix(result.lambda.real as number[], result.lambda.imag as number[] | null);
+            expect(maxRelError(cxDotMM([A, null], E), cxDotMM(E, D))).toBeLessThan(1e-10);
+        }
     });
 });
