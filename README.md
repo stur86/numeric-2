@@ -65,6 +65,8 @@ import { Matrix, linalg } from "https://stur86.github.io/numeric-2/dist/numeric-
 </script>
 ```
 
+`version` holds the library version (e.g. `Numeric.version`), taken from `package.json` at build time.
+
 Or build it yourself (requires [Bun](https://bun.sh)):
 
 ```bash

@@ -8,7 +8,8 @@ The original numeric.js is at `../numeric` relative to this project. Its documen
 
 ## Project Structure
 
-- `index.ts` — Public entry point. Exports `Vector`, `Matrix`, `SparseMatrix`, `linalg`, `sparse`, `optimize`, `interpolate`, `ode`, `complex`/`isComplex` (+ `Complex`/`Scalar` types), and utility functions.
+- `index.ts` — Public entry point. Exports `Vector`, `Matrix`, `SparseMatrix`, `linalg`, `sparse`, `optimize`, `interpolate`, `ode`, `complex`/`isComplex` (+ `Complex`/`Scalar` types), `version`, and utility functions.
+- `src/version.ts` — `version`: the library version, a named import of `version` from `package.json` (the bundler inlines just that string; a default import would inline all of package.json). `src/version.test.ts` checks it matches.
 - `src/complex.ts` — `Complex = {re, im}` scalar type, `Scalar = number | Complex`, `complex()`, `isComplex()`.
 - `src/base.ts` — `TensorBase` class: base for all tensors, stores `_re`, `_im`, `_shape`.
 - `src/vector.ts` — `Vector` class (1D tensor): `clone`, `promoteToComplex` (in place), `get`/`set`, `getBlock`/`setBlock`, `Vector.zeros`.

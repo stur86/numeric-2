@@ -13,6 +13,7 @@ import { defaultRng, RandomGenerator } from "./src/random";
 import type { Size, SampleOptions, Sample } from "./src/random";
 import { TensorBase } from "./src/base";
 import { prettyPrint } from "./src/print";
+import { version } from "./src/version";
 import type { PrettyPrintOptions } from "./src/print";
 import { dim, rep, linspace, random, identity, diag } from "./src/utils";
 // These accept raw arrays or Vector/Matrix (real or complex)
@@ -33,6 +34,7 @@ export {
     complex, isComplex,
     defaultRng, RandomGenerator, TensorBase,
     prettyPrint,
+    version,
     dim, rep, linspace, random, identity, diag,
     clone, transpose, negtranspose, transjugate, getDiag, getBlock, getBlock1D, setBlock, getRange, blockMatrix, tensor, same,
 };
