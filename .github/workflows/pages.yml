@@ -28,6 +28,9 @@ concurrency:
 
 env:
   BUN_VERSION: 1.4.2
+  # Version shown on the docs and benchmark pages: the release tag (a manual
+  # run on a branch leaves it empty, and scripts/version.ts uses dev-<sha>).
+  SITE_VERSION: ${{ github.ref_type == 'tag' && github.ref_name || '' }}
 
 jobs:
   docs:
@@ -43,7 +46,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: build/docs
-          key: docs-${{ hashFiles('index.ts', 'src/**/*.ts', '!src/**/*.test.ts', 'typedoc.json', 'package.json', 'bun.lockb') }}
+          key: docs-${{ env.SITE_VERSION || github.sha }}-${{ hashFiles('index.ts', 'src/**/*.ts', '!src/**/*.test.ts', 'typedoc.json', 'scripts/build-docs.ts', 'scripts/version.ts', 'package.json', 'bun.lockb') }}
       - name: Cache dependencies
         if: steps.cache.outputs.cache-hit != 'true'
         uses: actions/cache@v4

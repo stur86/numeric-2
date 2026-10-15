@@ -1,6 +1,7 @@
 /**
  * Build the benchmark page into benchmarks/web/dist/:
- *   bench.js      page logic + numeric-2 + shared suites (browser bundle)
+ *   bench.js      page logic + numeric-2 + shared suites (browser bundle; the
+ *                 site version from scripts/version.ts is baked in)
  *   results.json  server results from benchmarks/results/*.json
  *   index.html    page.html wrapped in a document skeleton (for local serving)
  *
@@ -9,6 +10,7 @@
  */
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
 import { join } from "path";
+import { siteVersion } from "../../scripts/version";
 
 const here = import.meta.dir;
 const dist = join(here, "dist");
@@ -20,6 +22,7 @@ const build = await Bun.build({
     target: "browser",
     format: "esm",
     minify: true,
+    define: { __SITE_VERSION__: JSON.stringify(siteVersion()) },
 });
 if (!build.success) {
     for (const log of build.logs) console.error(log);
