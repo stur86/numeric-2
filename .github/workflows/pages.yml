@@ -1,10 +1,11 @@
 # Build the project website and publish it with GitHub Pages
 # (repository settings: Pages → Source: GitHub Actions).
 #
-# Runs when a release is published, so the site documents and benchmarks the
-# released code rather than whatever is on main; it builds from the release's
-# tag. A manual run (workflow_dispatch) builds the chosen branch or tag, e.g.
-# to redeploy the latest release.
+# Builds from a release tag, so the site documents and benchmarks the released
+# code rather than whatever is on main. The Release workflow (release.yml)
+# dispatches it on the new tag; a release published any other way triggers it
+# too. A manual run builds the chosen branch or tag, e.g. to redeploy the
+# latest release.
 #
 # Each part is built by its own job and cached on a hash of its inputs, so a
 # merge that only touches the front page re-uses the docs, bundles and

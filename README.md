@@ -102,7 +102,7 @@ bun run site:build    # API reference + bundles + benchmark report + front page 
 bun run site:serve    # preview build/site locally
 ```
 
-The website is rebuilt and published to GitHub Pages by `.github/workflows/pages.yml` whenever a GitHub release is published (or on a manual run), from the release tag. To release, bump `version` in `package.json` (semver), merge, then publish a release tagged `v` + that version (e.g. `v0.2.0`): the workflow fails without building anything if the tag does not match. Benchmark results are not committed: CI measures them (re-running only when the library or the benchmark suite changes), and local runs write to the git-ignored `benchmarks/results/`.
+The website is rebuilt and published to GitHub Pages by `.github/workflows/pages.yml` whenever a GitHub release is published (or on a manual run), from the release tag. To release, bump `version` in `package.json` (semver) and merge, then run the **Release** workflow (Actions → Release → Run workflow) on `main`: it tags `v` + that version, creates the GitHub release with generated notes, and deploys the website for it. Don't create `v*` tags or releases by hand (a tag ruleset should block it); if one appears anyway, the website workflow fails without building anything when the tag does not match `package.json`. Benchmark results are not committed: CI measures them (re-running only when the library or the benchmark suite changes), and local runs write to the git-ignored `benchmarks/results/`.
 
 See [CLAUDE.md](CLAUDE.md) for a detailed tour of the code: project layout, the code-generation system, conventions and testing.
 
