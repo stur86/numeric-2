@@ -272,7 +272,7 @@ describe("eig: edge cases", () => {
     });
 });
 
-describe("eig: repeated eigenvalues (issue #3)", () => {
+describe("eig: repeated eigenvalues (issue #3) and zero-diagonal deflation", () => {
     // Columns of E are unit vectors, so |det E| ≤ 1 and is ~0 iff they are dependent.
     function checkIndependent(A: number[][] | Matrix, minDet: number) {
         const result = eig(A);
@@ -308,8 +308,18 @@ describe("eig: repeated eigenvalues (issue #3)", () => {
         );
         checkIndependent(A, 0.1);
     });
+    // Zero diagonal next to a zero subdiagonal: numeric.js's strict deflation
+    // test never deflated it, and QRFrancis threw "eig: internal error".
+    const rotations = [[0, -1, 0, 0], [1, 0, 0, 0], [0, 0, 0, -1], [0, 0, 1, 0]];
+    test("two identical rotation blocks (±i twice)", () => checkIndependent(rotations, 0.99));
+    test("two identical rotation blocks, complex input", () => {
+        checkIndependent(new Matrix(rotations.map((r) => r.slice()), rotations.map((r) => r.map(() => 0))), 0.99);
+    });
+    test("rotation block next to a zero eigenvalue", () => {
+        checkIndependent([[0, -1, 0], [1, 0, 0], [0, 0, 0]], 0.99);
+    });
     test("defective Jordan blocks give finite eigenvectors", () => {
-        for (const A of [[[1, 1], [0, 1]], [[2, 1, 0, 0], [0, 2, 1, 0], [0, 0, 2, 1], [0, 0, 0, 2]]]) {
+        for (const A of [[[1, 1], [0, 1]], [[2, 1, 0, 0], [0, 2, 1, 0], [0, 0, 2, 1], [0, 0, 0, 2]], [[0, 1, 0], [0, 0, 0], [0, 0, 0]], [[0, 1, 0], [0, 0, 1], [0, 0, 0]]]) {
             const result = eig(A);
             const E = toCx(result.E);
             for (const row of E[0]) for (const x of row) expect(Number.isFinite(x)).toBe(true);
