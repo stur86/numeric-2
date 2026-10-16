@@ -527,7 +527,7 @@ export function buildCases(libs: Libs): Case[] {
 
         {
             // Full symmetric eigendecomposition (values and vectors). math.js's eigs has a dedicated
-            // symmetric solver; numeric.js only has the general eig, which still applies.
+            // symmetric solver; numeric.js has none (its general eig is a different algorithm, compared in eig(A)).
             suite: "Linear algebra", name: "eigh(A), A symmetric", sizes: [8, 32, 100], sizeLabel: matLabel,
             setup: (n, rng) => {
                 const X = randMat(n, n, rng);
@@ -535,7 +535,6 @@ export function buildCases(libs: Libs): Case[] {
             },
             run: {
                 "numeric-2": (A) => L.eigh(A).lambda,
-                numeric: (A, nm) => nm.eig(A).lambda,
                 mathjs: (A, m) => m.eigs(A).values,
             },
             check: sameEigenvalues,
