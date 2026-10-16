@@ -1,8 +1,75 @@
 {
   "name": "numeric-2",
   "version": "0.1.0",
-  "module": "index.ts",
+  "description": "Numerical analysis in TypeScript: a modern, eval-free port of numeric.js (linear algebra, complex numbers, FFT, sparse matrices, optimization, ODEs, splines).",
+  "keywords": [
+    "numeric",
+    "numerical",
+    "linear-algebra",
+    "matrix",
+    "complex",
+    "eigenvalues",
+    "svd",
+    "fft",
+    "sparse",
+    "optimization",
+    "ode",
+    "spline",
+    "typescript"
+  ],
+  "homepage": "https://stur86.github.io/numeric-2/",
+  "bugs": {
+    "url": "https://github.com/stur86/numeric-2/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/stur86/numeric-2.git"
+  },
+  "license": "MIT",
+  "author": "Simone Sturniolo",
   "type": "module",
+  "main": "./dist/numeric-2.cjs",
+  "module": "./dist/numeric-2.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/numeric-2.js"
+      },
+      "require": {
+        "types": "./dist/index.d.cts",
+        "default": "./dist/numeric-2.cjs"
+      }
+    },
+    "./package.json": "./package.json"
+  },
+  "unpkg": "./dist/numeric-2.umd.min.js",
+  "jsdelivr": "./dist/numeric-2.umd.min.js",
+  "sideEffects": false,
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "prettify": "prettier --write src/ benchmarks/ index.ts",
+    "build:esm": "bun build index.ts --outfile dist/numeric-2.js",
+    "build:esm-min": "bun build index.ts --outfile dist/numeric-2.min.js --minify",
+    "build:cjs": "bun build index.ts --format=cjs --outfile dist/numeric-2.cjs",
+    "build:umd": "esm2umd Numeric dist/numeric-2.js > dist/numeric-2.umd.js",
+    "build:umd-min": "esm2umd Numeric dist/numeric-2.min.js > dist/numeric-2.umd.min.js",
+    "build:types": "dts-bundle-generator -o dist/index.d.ts index.ts --no-check --export-referenced-types=false && cp dist/index.d.ts dist/index.d.cts",
+    "build": "npm run build:esm && npm run build:esm-min && npm run build:cjs && npm run build:umd && npm run build:umd-min && npm run build:types",
+    "prepublishOnly": "npm run build",
+    "bench:bun": "bun run benchmarks/run.ts",
+    "bench:node": "bun build benchmarks/run.ts --target=node --outfile=benchmarks/.build/run-node.mjs && node --expose-gc benchmarks/.build/run-node.mjs",
+    "bench:web": "bun run benchmarks/web/build.ts",
+    "bench:serve": "bun run benchmarks/web/serve.ts",
+    "docs:build": "bun run scripts/build-docs.ts",
+    "site:build": "bun run scripts/build-site.ts",
+    "site:serve": "bun run scripts/serve.ts"
+  },
   "devDependencies": {
     "@stdlib/blas-base-daxpy": "0.4.1",
     "@stdlib/blas-base-dcopy": "0.4.1",
@@ -16,28 +83,12 @@
     "@stdlib/math-strided-special-dsqrt": "0.2.3",
     "@types/bun": "latest",
     "@types/numeric": "^1.2.6",
+    "dts-bundle-generator": "^9.5.1",
     "esm2umd": "^0.2.1",
     "mathjs": "15.2.0",
     "numeric": "^1.2.6",
     "prettier": "^3.3.3",
-    "typedoc": "^0.26.5"
-  },
-  "peerDependencies": {
-    "typescript": "^5.0.0"
-  },
-  "scripts": {
-    "prettify": "prettier --write src/ benchmarks/ index.ts",
-    "build:esm": "bun build index.ts --outfile dist/numeric-2.js",
-    "build:esm-min": "bun build index.ts --outfile dist/numeric-2.min.js --minify",
-    "build:umd": "esm2umd Numeric dist/numeric-2.js > dist/numeric-2.umd.js",
-    "build:umd-min": "esm2umd Numeric dist/numeric-2.min.js > dist/numeric-2.umd.min.js",
-    "build": "npm run build:esm && npm run build:esm-min && npm run build:umd && npm run build:umd-min",
-    "bench:bun": "bun run benchmarks/run.ts",
-    "bench:node": "bun build benchmarks/run.ts --target=node --outfile=benchmarks/.build/run-node.mjs && node --expose-gc benchmarks/.build/run-node.mjs",
-    "bench:web": "bun run benchmarks/web/build.ts",
-    "bench:serve": "bun run benchmarks/web/serve.ts",
-    "docs:build": "bun run scripts/build-docs.ts",
-    "site:build": "bun run scripts/build-site.ts",
-    "site:serve": "bun run scripts/serve.ts"
+    "typedoc": "^0.26.5",
+    "typescript": "5.5.4"
   }
 }

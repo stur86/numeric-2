@@ -88,16 +88,19 @@ jobs:
       - uses: oven-sh/setup-bun@v2
         with:
           bun-version: ${{ env.BUN_VERSION }}
-      # package.json without its version: a release bump alone must not invalidate the cache
+      # The bundles contain the version (src/version.ts), so it is part of their
+      # cache key; the rest of package.json is hashed without it
       - name: Hash package.json (without version)
         id: pkg
-        run: echo "hash=$(jq -S 'del(.version)' package.json | sha256sum | cut -c1-16)" >> "$GITHUB_OUTPUT"
+        run: |
+          echo "hash=$(jq -S 'del(.version)' package.json | sha256sum | cut -c1-16)" >> "$GITHUB_OUTPUT"
+          echo "version=$(jq -r .version package.json)" >> "$GITHUB_OUTPUT"
       - name: Cache built bundles
         id: cache
         uses: actions/cache@v4
         with:
           path: dist
-          key: dist-${{ steps.pkg.outputs.hash }}-${{ hashFiles('index.ts', 'src/**/*.ts', '!src/**/*.test.ts', 'bun.lockb') }}
+          key: dist-${{ steps.pkg.outputs.hash }}-${{ steps.pkg.outputs.version }}-${{ hashFiles('index.ts', 'src/**/*.ts', '!src/**/*.test.ts', 'bun.lockb') }}
       - name: Cache dependencies
         if: steps.cache.outputs.cache-hit != 'true'
         uses: actions/cache@v4

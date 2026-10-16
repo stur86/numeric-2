@@ -50,7 +50,18 @@ Functions accept either plain arrays or numeric-2's tensor classes and return te
 
 ## Using it
 
-The library is a single file with no runtime dependencies. The website hosts the current build:
+The library is a single file with no runtime dependencies. Install it from npm:
+
+```bash
+npm install numeric-2   # or: bun add numeric-2
+```
+
+```ts
+import { Matrix, linalg } from "numeric-2";        // ES module, with TypeScript types
+const { Matrix, linalg } = require("numeric-2");   // CommonJS
+```
+
+Or load the build the website hosts:
 
 ```ts
 // ES module (browsers, Node, Bun, Deno)
@@ -73,7 +84,7 @@ Or build it yourself (requires [Bun](https://bun.sh)):
 git clone https://github.com/stur86/numeric-2
 cd numeric-2
 bun install
-bun run build   # → dist/numeric-2.js, .min.js, .umd.js, .umd.min.js
+bun run build   # → dist/numeric-2.js, .min.js, .cjs, .umd.js, .umd.min.js, index.d.ts
 ```
 
 ## Development
