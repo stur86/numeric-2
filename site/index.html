@@ -239,8 +239,15 @@ footer { border-top: 1px solid var(--rule); padding-top: 22px; color: var(--mute
 
   <section aria-labelledby="usage-title">
     <h2 id="usage-title">Using it</h2>
-    <p class="section-lede">The library is a single file with no dependencies. This site hosts the current build.</p>
+    <p class="section-lede">The library is a single file with no dependencies. Install it from npm, or load the build this site hosts.</p>
     <div class="usage">
+      <div class="usage-card">
+        <h3>From npm</h3>
+<pre>npm install numeric-2    <span class="tok-c"># or: bun add numeric-2</span>
+
+<span class="tok-k">import</span> { Matrix, linalg } <span class="tok-k">from</span> <span class="tok-s">"numeric-2"</span>;</pre>
+        <p>ES module and CommonJS builds, with TypeScript types.</p>
+      </div>
       <div class="usage-card">
         <h3>As an ES module</h3>
 <pre><span class="tok-k">import</span> { Matrix, linalg } <span class="tok-k">from</span>

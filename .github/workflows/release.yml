@@ -1,5 +1,7 @@
 # Publish a release from the version in package.json: run it manually
 # (Actions → Release → Run workflow) on main after merging a version bump.
+# It creates the tag and GitHub release, publishes the package to npm and
+# deploys the website.
 #
 # The tag is always "v" + package.json's version, so the two cannot disagree;
 # a tag ruleset on v* that only GitHub Actions may bypass stops tags and
@@ -8,6 +10,11 @@
 # Releases created with GITHUB_TOKEN do not trigger other workflows (GitHub's
 # guard against recursive runs), so the website workflow is dispatched
 # explicitly on the new tag; manual dispatches are exempt from that rule.
+#
+# npm publishing uses trusted publishing (OIDC, no token secret): the package's
+# settings on npmjs.com name this repository and release.yml as its trusted
+# publisher. npm then adds provenance automatically. Bun cannot publish this way
+# yet, so npm does the publishing (Bun still installs and builds).
 name: Release
 
 on:
@@ -16,6 +23,7 @@ on:
 permissions:
   contents: write # create the tag and the release
   actions: write  # dispatch the website workflow
+  id-token: write # npm trusted publishing (OIDC)
 
 concurrency:
   group: release
@@ -37,13 +45,24 @@ jobs:
       - uses: oven-sh/setup-bun@v2
         with:
           bun-version: 1.4.2
+      # Trusted publishing needs npm >= 11.5.1 (Node 24 ships npm 11)
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          registry-url: https://registry.npmjs.org
       - name: Read the version
         id: version
         run: |
           version=$(jq -r .version package.json)
           echo "tag=v$version" >> "$GITHUB_OUTPUT"
           # Versions with a pre-release suffix (1.2.0-beta.1) become GitHub pre-releases
-          if [[ "$version" == *-* ]]; then echo "prerelease=--prerelease" >> "$GITHUB_OUTPUT"; fi
+          # and are published to npm under the "next" dist-tag, so "latest" stays stable
+          if [[ "$version" == *-* ]]; then
+            echo "prerelease=--prerelease" >> "$GITHUB_OUTPUT"
+            echo "npm_tag=next" >> "$GITHUB_OUTPUT"
+          else
+            echo "npm_tag=latest" >> "$GITHUB_OUTPUT"
+          fi
       - name: Check the version
         run: bun run scripts/check-version.ts "${{ steps.version.outputs.tag }}"
       - name: Fail if the tag already exists
@@ -52,6 +71,20 @@ jobs:
             echo "::error::Tag ${{ steps.version.outputs.tag }} already exists: bump the version in package.json first"
             exit 1
           fi
+      - name: Fail if the version is already on npm
+        run: |
+          if npm view "numeric-2@$(jq -r .version package.json)" version > /dev/null 2>&1; then
+            echo "::error::numeric-2@$(jq -r .version package.json) is already on npm: bump the version in package.json first"
+            exit 1
+          fi
+      - name: Build
+        run: |
+          bun install --frozen-lockfile
+          bun run build
+      # Check the package before tagging: a version cannot be reused on npm,
+      # so the tag and release come only after everything up to the upload works
+      - name: Check the package
+        run: npm publish --dry-run --ignore-scripts --tag "${{ steps.version.outputs.npm_tag }}"
       - name: Create the release
         run: >
           gh release create "${{ steps.version.outputs.tag }}"
@@ -59,5 +92,10 @@ jobs:
           --title "${{ steps.version.outputs.tag }}"
           --generate-notes
           ${{ steps.version.outputs.prerelease }}
+      # Already built above; --ignore-scripts skips prepublishOnly's rebuild.
+      # If this step fails, the tag and release already exist: fix the cause and
+      # publish this version by hand (npm publish from the tag).
+      - name: Publish to npm
+        run: npm publish --ignore-scripts --tag "${{ steps.version.outputs.npm_tag }}"
       - name: Deploy the website for the release
         run: gh workflow run pages.yml --ref "${{ steps.version.outputs.tag }}"
